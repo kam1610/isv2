@@ -1,0 +1,121 @@
+label {
+  background-color: transparent;
+  padding-left: 8px;
+  margin : 1px;
+}
+
+listview {
+ background-color: azure;
+ border-width: 2px;
+ border-color: red;
+ padding: 0;
+ margin: 0;
+}
+
+.uneditable{
+    background-color: lightgray;
+}
+
+
+expander {
+  background-color: cyan;
+}
+
+treeexpander.indicate_upper{ border-top   : 3px solid orange; }
+treeexpander.indicate_lower{ border-bottom: 3px solid orange; }
+label.indicate_upper       { border-top   : 3px solid green; }
+label.indicate_lower       { border-bottom: 3px solid green; }
+
+.vertical_text_box {
+    color: yellow;
+}
+
+
+button.isv2_button {
+    margin  : 0;
+    padding : 0;
+    min-height: 0px;
+}
+
+label.isv2_label{
+    margin  : 0;
+    padding : 0;
+}
+
+slider {
+    border-radius : 0;
+}
+
+entry{
+    margin  : 0;
+    padding : 3px;
+    min-height: 0px;
+}
+
+entry text{
+    margin  : 0;
+}
+
+.narrow_box {
+    margin  : 0;
+    padding : 0;
+}
+
+dropdown button{
+    margin  : 0;
+    padding : 0;
+    min-height: 0px;
+}
+
+dropdown popoverp{
+    margin  : 0;
+    padding : 0;
+    min-height: 0px;
+}
+dropdown popover label{
+    margin  : 0;
+    padding : 0;
+    min-height: 0px;
+}
+
+.label_ref_gray_out {
+    color: lightgray;
+}
+
+fontbutton button{
+    margin  : 0;
+    padding : 0;
+    min-height: 0px;
+}
+
+menubar item{
+    margin  : 0;
+    padding : 0px;
+    min-height: 0px;
+}
+
+menubar popoverp{
+    margin  : 0;
+    padding : 0;
+    min-height: 0px;
+}
+menubar popover label{
+    margin  : 0;
+    padding : 0;
+    min-height: 0px;
+}
+
+/* popup_list box,label { */
+/*     margin  : 0; */
+/*     padding : 0; */
+/*     min-height: 0px; */
+/* } */
+
+/* view  box,label { */
+/*     margin  : 0; */
+/*     padding : 0; */
+/*     min-height: 0px; */
+/* } */
+
+
+

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<names>
+    <name suffix="mr" last="jones" first="bob" />
+    <!-- this is a comment -->
+    <name first="elizabeth" last="smith" />
+    <scene>
+        <mat class="class1">hello1</mat>
+        <mat>hello2</mat>
+    </scene>
+</names>

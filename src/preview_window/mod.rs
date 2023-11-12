@@ -415,7 +415,7 @@ impl PreviewWindow {
                             else { sn.clone() }};
                         let bgimg = {
                             if let Some(b) = sn_ref.get_scene_bgimg() { b }
-                            else { println!("the node is not scene"); return; } };
+                            else { println!("the node is not scene"); PathBuf::new() } };
                         let mut img_path = param.property::<PathBuf>("project_dir");
                         img_path.push( bgimg );
                         if let Ok(p) = Pixbuf::from_file( img_path ) {

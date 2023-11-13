@@ -24,6 +24,7 @@ impl Isv2Mediator{
                  mediator.imp().scenario_text_view.borrow().emit_by_name::<()>("sno-selected", &[&s]);
                  mediator.imp().attr_box.borrow().emit_by_name::<()>("sno-selected", &[&s]);
                  mediator.imp().preview_window.borrow().emit_by_name::<()>("sno-selected", &[&s]);
+                 mediator.imp().node_add_box.borrow().emit_by_name::<()>("sno-selected", &[&s]);
              })
          );
         // mat-attribute-changed ///////////////////////////
@@ -59,6 +60,7 @@ impl Isv2Mediator{
             closure_local!(|mediator: Self, s: ScenarioNodeObject| {
                 mediator.imp().attr_box.borrow().emit_by_name::<()>("unset-sno", &[&s]);
                 mediator.imp().preview_window.borrow().emit_by_name::<()>("unset-sno", &[&s]);
+                mediator.imp().node_add_box.borrow().emit_by_name::<()>("unset-sno", &[&s]);
             }));
         ////////////////////////////////////////////////////
         obj

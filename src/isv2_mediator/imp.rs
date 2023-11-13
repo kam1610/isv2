@@ -27,6 +27,8 @@ pub struct Isv2Mediator {
     pub(super) parameter          : RefCell<Object>,
     #[property(get, set)]
     pub(super) scenario_text_view : RefCell<Object>,
+    #[property(get, set)]
+    pub(super) node_add_box       : RefCell<Object>,
 }
 
 // The central trait for subclassing a GObject
@@ -81,6 +83,7 @@ impl Default for Isv2Mediator{
             preview_window     : RefCell::new(Object::with_type(glib::types::Type::OBJECT)),
             parameter          : RefCell::new(Object::with_type(glib::types::Type::OBJECT)),
             scenario_text_view : RefCell::new(Object::with_type(glib::types::Type::OBJECT)),
+            node_add_box       : RefCell::new(Object::with_type(glib::types::Type::OBJECT)),
         }
     }
 }

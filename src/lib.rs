@@ -60,6 +60,7 @@ use crate::scenario_node_attribute_box::ScenarioNodeAttributeBox;
 use crate::scenario_node_object::ScenarioNodeObject;
 use crate::scenario_node_object::remove_node;
 use crate::scenario_text_view::ScenarioTextView;
+use crate::scenario_node_button_box::ScenarioNodeButtonBox;
 use crate::tree_util::tree_manipulate;
 use crate::view_menu::view_actions;
 
@@ -216,6 +217,10 @@ pub fn build_ui(app: &Application) {
 
     }));
 
+    // node add buttons ////////////////////////////////////
+    let scenario_node_button_box = ScenarioNodeButtonBox::new(selection_model.clone(),
+                                                              history.clone());
+
     ////////////////////////////////////////////////////////
     let scenario_list_box = Box::builder()
         .orientation(Orientation::Vertical)
@@ -256,6 +261,7 @@ pub fn build_ui(app: &Application) {
     button_box.append(&dump_button);
     button_box.append(&update_button);
     button_box.append(&remove_button);
+    button_box.append(&scenario_node_button_box);
 
     scenario_list_box.append(&button_box);
     scenario_list_box.set_width_request(button_box.width());

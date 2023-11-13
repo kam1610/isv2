@@ -15,7 +15,6 @@ mod sno_list;
 mod tree_util;
 mod view_menu;
 
-use std::cell::Cell;
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -30,11 +29,9 @@ use gtk::ListView;
 use gtk::Orientation;
 use gtk::Paned;
 use gtk::PolicyType;
-use gtk::Popover;
 use gtk::ScrolledWindow;
 use gtk::SingleSelection;
 use gtk::TreeListModel;
-use gtk::TreeListRow;
 use gtk::gdk::Display;
 use gtk::gdk::DragAction;
 use gtk::gio::ListModel;
@@ -45,8 +42,6 @@ use gtk::glib::object::Object;
 use gtk::glib;
 use gtk::prelude::*;
 
-use glib::clone;
-
 use crate::file_menu::actions;
 use crate::isv2_button::Isv2Button;
 use crate::isv2_mediator::Isv2Mediator;
@@ -54,340 +49,19 @@ use crate::isv2_parameter::Isv2Parameter;
 use crate::operation_history::Operation;
 use crate::operation_history::OperationHistory;
 use crate::operation_history::OperationHistoryItem;
-use crate::operation_history::TreeManipulationHandle;
 use crate::preview_window::PreviewWindow;
 use crate::scenario_node::BranchType;
 use crate::scenario_node::Color;
 use crate::scenario_node::Dimension;
-use crate::scenario_node::Item;
 use crate::scenario_node::LabelType;
 use crate::scenario_node::Position;
-use crate::scenario_node::ScenarioNode;
-use crate::scenario_node::{Scene, Page, Mat, Ovimg};
+use crate::scenario_node::{Scene, Mat};
 use crate::scenario_node_attribute_box::ScenarioNodeAttributeBox;
 use crate::scenario_node_object::ScenarioNodeObject;
-use crate::scenario_node_object::add_child;
-use crate::scenario_node_object::add_neighbor;
 use crate::scenario_node_object::remove_node;
 use crate::scenario_text_view::ScenarioTextView;
-use crate::sno_list::selection_to_sno;
 use crate::tree_util::tree_manipulate;
 use crate::view_menu::view_actions;
-
-// AddNodeButton //////////////////////////////////////////
-struct AddNodeButton { // parts of AddNodePopButton
-    pub button       : Isv2Button,
-    pub button_state : Cell<bool>,
-    pub node_type    : scenario_node::Item,
-}
-impl AddNodeButton {
-    // button_clicked //////////////////////////////////////
-    fn button_clicked(add_node_button: &AddNodeButton,
-                      btn            : Isv2Button){
-
-        println!("(button_clicked)");
-
-        if !add_node_button.button_state.get() { println!("(button_clicked) button is disabled"); return; }
-
-        let new_node = ScenarioNodeObject::new_with_seq_id(0, tree_manipulate::gen_id());
-        *new_node.get_node().value.borrow_mut() = match &add_node_button.node_type {
-            scenario_node::Item::Group    => scenario_node::Item::Group,
-            scenario_node::Item::Scene(_) => scenario_node::Item::Scene(Scene::default()),
-            scenario_node::Item::Page(_)  => scenario_node::Item::Page(Page::default()),
-            scenario_node::Item::Mat(_)   => scenario_node::Item::Mat(Mat::default()),
-            scenario_node::Item::Ovimg(_) => scenario_node::Item::Ovimg(Ovimg::default()),
-            scenario_node::Item::Pmat(_)  => scenario_node::Item::Pmat(Mat::default()),
-            _ => scenario_node::Item::Group,
-        };
-        // confirm empty list
-        if btn.get_selection().selected_item().is_none() {
-            let root_store= btn.get_store();
-            let h= OperationHistoryItem::new_with_root_store(Operation::AddRoot,
-                                                             &root_store,
-                                                             &new_node);
-            add_node_button.button.get_history().push(h);
-            tree_manipulate::add_node_to_empty_store(add_node_button.button.clone(),
-                                    &new_node);
-            return;
-        }
-
-        let obj     = btn.get_selection().selected_item().unwrap();
-        let sel_row = obj.downcast_ref::<TreeListRow>().expect("TreeListRow is expected");
-        let sel_sno = sel_row.item().and_downcast::<ScenarioNodeObject>().expect("sno is expd");
-
-        let ope_type;
-        // sel_belong_row //////////////////////////////////
-        fn sel_belong_row(sel_sno: &ScenarioNodeObject,
-                          btn    : &Isv2Button,
-                          belong_func: &dyn Fn(&Rc<ScenarioNode>)->Option<Rc<ScenarioNode>> ) -> Result<(),()>{
-            let target_s = {
-                if let Some(s) = belong_func(&sel_sno.get_node()) {s}
-                else {
-                    println!("(AddNodeButton)unexpected condition {}:{}", file!(), line!());
-                    return Err(()); }};
-            let (_s, n) = tree_manipulate::search_row_with_sn_up_in_ssel(&*btn.get_selection(),
-                                                                         target_s,
-                                                                         btn.get_selection().selected());
-            btn.get_selection().set_selected(n); // selection is updated tempolary to create history handle
-            Ok(())
-        }
-
-        ////////////////////////////////////////////////////
-        // ope-sel conditions //////////////////////////////
-        match add_node_button.node_type { // ope
-            // ope:grp /////////////////////////////////////
-            scenario_node::Item::Group => {
-                match *sel_sno.get_node().value.borrow() { // sel
-                    scenario_node::Item::Group |
-                    scenario_node::Item::Scene(_) => { // ope:grp, sel:grp,scn
-                        ope_type = Operation::AddNeighbor;
-                    },
-                    scenario_node::Item::Page(_) |
-                    scenario_node::Item::Pmat(_) |
-                    scenario_node::Item::Mat(_)  |
-                    scenario_node::Item::Ovimg(_) => { // ope:grp, sel:pg,pmt,mt,ovi
-                        if let Ok(_) = sel_belong_row(&sel_sno, &btn, &ScenarioNode::get_belong_scene) {
-                            ope_type = Operation::AddNeighbor; }
-                        else {
-                            return; }
-                    },
-                    _ => { ope_type = Operation::AddChild; }
-                };
-            },
-            // ope:scn /////////////////////////////////////
-            scenario_node::Item::Scene(_) => {
-                match *sel_sno.get_node().value.borrow() { // sel
-                    scenario_node::Item::Group => { // ope:scn, sel:grp
-                        ope_type = Operation::AddChild;
-                    },
-                    scenario_node::Item::Scene(_) => { // ope:scn, sel:scn
-                        ope_type = Operation::AddNeighbor;
-                    },
-                    scenario_node::Item::Page(_) |
-                    scenario_node::Item::Pmat(_) |
-                    scenario_node::Item::Mat(_)  |
-                    scenario_node::Item::Ovimg(_) => { // ope:scn, sel:pg,pmt,mt,ovi
-                        let target_s = {
-                            if let Some(s) = ScenarioNode::get_belong_scene(&sel_sno.get_node()) {s}
-                            else {
-                                println!("(AddNodeButton)unexpected condition {}:{}", file!(), line!());
-                                return; }};
-                        let (_s, n) = tree_manipulate::search_row_with_sn_up_in_ssel(&*btn.get_selection(),
-                                                                                     target_s,
-                                                                                     btn.get_selection().selected());
-                        btn.get_selection().set_selected(n);
-                        ope_type = Operation::AddNeighbor;
-                    },
-                    _ => { ope_type = Operation::AddChild; }
-                };
-            },
-            // ope:pg,pm ///////////////////////////////////
-            scenario_node::Item::Page(_) |
-            scenario_node::Item::Pmat(_) => {
-                match *sel_sno.get_node().value.borrow() { // sel
-                    scenario_node::Item::Group => {
-                        return;
-                    },
-                    scenario_node::Item::Scene(_) => {
-                        ope_type = Operation::AddChild;
-                    },
-                    scenario_node::Item::Page(_) |
-                    scenario_node::Item::Pmat(_) => {
-                        ope_type = Operation::AddNeighbor;
-                    },
-                    scenario_node::Item::Mat(_) |
-                    scenario_node::Item::Ovimg(_) => {
-                        if let Ok(_) = sel_belong_row(&sel_sno, &btn, &ScenarioNode::get_belong_page) {
-                            ope_type = Operation::AddNeighbor; }
-                        else {
-                            return; }
-                    },
-                    _ => { ope_type = Operation::AddChild; }
-                };
-            },
-            // ope:mat,ovi /////////////////////////////////
-            scenario_node::Item::Mat(_) |
-            scenario_node::Item::Ovimg(_) => {
-                match *sel_sno.get_node().value.borrow() { // sel
-                    scenario_node::Item::Group |
-                    scenario_node::Item::Scene(_) => {
-                        return;
-                    },
-                    scenario_node::Item::Page(_) => {
-                        ope_type = Operation::AddChild;
-                    },
-                    scenario_node::Item::Pmat(_) => {
-                        return;
-                    },
-                    scenario_node::Item::Mat(_) |
-                    scenario_node::Item::Ovimg(_) => {
-                        ope_type = Operation::AddNeighbor;
-                    },
-                    _ => { ope_type = Operation::AddChild; }
-                };
-            },
-            _ => { ope_type = Operation::AddChild; }
-        };
-
-        // select kind of addition(child or neighbor_ //////
-        let add_child_func = std::boxed::Box::new( |h: &TreeManipulationHandle, n: &ScenarioNodeObject|{
-            add_child( h.sno.as_ref().unwrap().as_ref(),
-                       n,
-                       h.row.as_ref().unwrap().as_ref(),
-                       h.store.as_ref().unwrap().as_ref()); } );
-        let add_neighbor_func = std::boxed::Box::new( |h: &TreeManipulationHandle, n: &ScenarioNodeObject|{
-            add_neighbor( h.sno.as_ref().unwrap().as_ref(),
-                          n,
-                          h.store.as_ref().unwrap().as_ref()); });
-        let add_func : std::boxed::Box<dyn Fn(&TreeManipulationHandle, &ScenarioNodeObject)>;
-
-        if ope_type == Operation::AddChild {
-            add_func = add_child_func; }
-        else {
-            add_func = add_neighbor_func; }
-
-        if let Ok(hdl) = tree_manipulate::isv2button_to_dest_member4(&btn){
-            add_func(&hdl, &new_node);
-
-            let mut h= OperationHistoryItem::new_from_handle(ope_type, hdl); // error! must chose AddNeighbor or AddChild
-            h.new_sno= Some( Rc::new(new_node.clone()) );
-
-            add_node_button.button.get_history().push(h);
-
-            // update selection to select added node
-            let (s, n) = tree_manipulate::search_row_with_sn_down_in_ssel(&*btn.get_selection(),
-                                                                          new_node.get_node().clone(),
-                                                                          btn.get_selection().selected());
-            if s.is_some() { btn.get_selection().set_selected(n); }
-        } else {
-            println!("(add_node_button) unexpected condition!");
-        }
-    }
-    // build2 //////////////////////////////////////////////
-    fn build2(label           : &str,
-              single_selection: SingleSelection,
-              history         : Rc<OperationHistory>,
-              node_type       : scenario_node::Item,
-              pop             : Popover) -> Rc<Self>{
-        let add_node_button = AddNodeButton{
-            button: Isv2Button::with_label_selection_history("",
-                                                             single_selection.clone(),
-                                                             history.clone()),
-            button_state : Cell::new(true),
-            node_type,
-        };
-        let add_node_button = Rc::new(add_node_button);
-
-        add_node_button.button.set_label(label);
-        add_node_button.button.connect_clicked(clone!(@strong add_node_button, @weak pop => move |_btn| {
-            Self::button_clicked(&add_node_button, add_node_button.button.clone());
-            pop.popdown();
-        }));
-
-        add_node_button
-    }
-    // set_state ///////////////////////////////////////////
-    pub fn set_state(&self, s: bool){
-        self.button_state.set(s);
-        if s {
-            self.button.first_child().unwrap().remove_css_class("label_ref_gray_out");
-        } else {
-            self.button.first_child().unwrap().add_css_class("label_ref_gray_out");
-        }
-    }
-}
-// AddNodePopButton ////////////////////////////////////////
-fn build_add_node_buttons(mut names        : Vec<&str>,
-                          mut items        : Vec<scenario_node::Item>,
-                          single_selection : SingleSelection,
-                          history          : Rc<OperationHistory>,
-                          pop              : Popover) -> Vec<Rc<AddNodeButton>>
-{
-    let mut v = Vec::new();
-    let names_len = names.len();
-    for _i in 0..names_len {
-        let button = AddNodeButton::build2(names.pop().unwrap(),
-                                           single_selection.clone(),
-                                           history.clone(),
-                                           items.pop().unwrap(),
-                                           pop.clone());
-        v.push(button);
-    }
-    return v;
-}
-struct AddNodePopButton{
-    pub pop_button   : Button,
-    pub pop          : Popover,
-}
-impl AddNodePopButton{
-    fn build(single_selection: SingleSelection,
-             history         : Rc<OperationHistory>,
-             bt              : BranchType,
-             label_text      : &str,
-    ) -> Self{
-        let pop_button = Button::with_label(label_text);
-        let pop        = Popover::builder().autohide(true).build();
-        pop_button.add_css_class("isv2_button");
-
-        // make sure that names and items has the same number of items
-        let names = vec!["Group","Scene","Page","Mat","Ovimg","Pmat"];
-        let items = vec![scenario_node::Item::Group,
-                         scenario_node::Item::Scene(Scene::default()),
-                         scenario_node::Item::Page(Page::default()),
-                         scenario_node::Item::Mat(Mat::default()),
-                         scenario_node::Item::Ovimg(Ovimg::default()),
-                         scenario_node::Item::Pmat(Mat::default()),
-        ];
-        // make buttons using build_add_node_buttons -> Vec<Rc<AddNodeButton>>
-        let buttons = build_add_node_buttons(names,
-                                             items,
-                                             single_selection.clone(),
-                                             history.clone(),
-                                             pop.clone());
-
-        let vbox = Box::new(gtk::Orientation::Vertical, 0);
-        let _ = buttons.iter().map(|anb|{ vbox.append(&anb.button) }).collect::<Vec<_>>();
-
-        pop.set_child(Some(&vbox));
-        pop_button.connect_clicked(glib::clone!(
-            @strong pop,
-            @weak   single_selection => move |_| {
-                let (sno, _) =
-                    if let Some((a,b)) = selection_to_sno(single_selection) {
-                        (a,b)
-                    } else {
-                        println!("no node is selected");
-                        let n = ScenarioNode::new(); // dummy node to indicate Group when empty list
-                        n.set_value(Item::Group);    // empty list is treated as a group
-                        let sno = ScenarioNodeObject::new_from( Rc::new(n) );
-                        (sno, gio::ListStore::with_type(ScenarioNodeObject::static_type()))
-                    };
-                let sno_value = sno.get_node();
-                let sno_value = &*sno_value.value.borrow();
-
-                let place_judge_func =
-                    if bt == BranchType::Child{
-                        |p, c| ScenarioNode::can_be_neighbor_or_child_auto(p, c) }
-                else {
-                    |p,c| ScenarioNode::can_be_neighbor(p,c) };
-
-                let _ = buttons.iter().map(|b|{
-                    if place_judge_func(sno_value,
-                                        &b.node_type){
-                        b.set_state(true);
-                    } else {
-                        b.set_state(false);
-                    }
-                }).collect::<Vec<_>>();
-                pop.popup()
-            }));
-
-        Self{
-            pop_button,
-            pop,
-        }
-    }
-}
 
 // load_css ////////////////////////////////////////////////
 pub fn load_css() {
@@ -479,18 +153,6 @@ pub fn build_ui(app: &Application) {
         .overlay_scrolling(false)
         .child(&list_view)
         .build();
-
-    // add_child ///////////////////////////////////////////
-    let add_child_button = AddNodePopButton::build( selection_model.clone(),
-                                                    history.clone(),
-                                                    BranchType::Child,
-                                                    "add");
-    let add_child_button_box = gtk::Box::builder()
-        .homogeneous(false)
-        .orientation(gtk::Orientation::Horizontal)
-        .build();
-    add_child_button_box.append(&add_child_button.pop_button);
-    add_child_button_box.append(&add_child_button.pop);
 
     // undo ////////////////////////////////////////////////
     let undo_button = Isv2Button::with_label_selection_history("undo",
@@ -593,7 +255,6 @@ pub fn build_ui(app: &Application) {
     button_box.append(&redo_button);
     button_box.append(&dump_button);
     button_box.append(&update_button);
-    button_box.append(&add_child_button_box);
     button_box.append(&remove_button);
 
     scenario_list_box.append(&button_box);

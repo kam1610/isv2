@@ -8,6 +8,7 @@ mod preview_window;
 mod scenario_item_drag_object;
 mod scenario_node;
 mod scenario_node_attribute_box;
+mod scenario_node_button_box;
 mod scenario_node_object;
 mod scenario_text_view;
 mod sno_list;
@@ -17,7 +18,6 @@ mod view_menu;
 use std::cell::Cell;
 use std::path::PathBuf;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicI32, Ordering};
 
 use gtk::Application;
 use gtk::ApplicationWindow;
@@ -70,39 +70,10 @@ use crate::scenario_node_object::add_child;
 use crate::scenario_node_object::add_neighbor;
 use crate::scenario_node_object::remove_node;
 use crate::scenario_text_view::ScenarioTextView;
-use crate::sno_list::get_parent_sno;
-use crate::sno_list::row_to_parent_row;
-use crate::sno_list::row_to_parent_store;
 use crate::sno_list::selection_to_sno;
 use crate::tree_util::tree_manipulate;
 use crate::view_menu::view_actions;
 
-// search_sn_upward ////////////////////////////////////////
-fn search_row_with_sn_up_in_ssel(single_selection : &SingleSelection,
-                                 sn               : Rc<ScenarioNode>,
-                                 mut from_n       : u32) -> (Option<TreeListRow>, u32) {
-    loop {
-        let row      = single_selection.item(from_n).unwrap().downcast::<TreeListRow>().expect("row");
-        let dest_sno = row.item().and_downcast::<ScenarioNodeObject>().expect("sno is expd");
-        if Rc::ptr_eq( &dest_sno.get_node(), &sn ) {
-            return (Some(row.clone()), from_n); }
-        if from_n == 0 { return (None, from_n); }
-        from_n -= 1;
-    }
-}
-// search_sn_downward //////////////////////////////////////
-fn search_row_with_sn_down_in_ssel(single_selection : &SingleSelection,
-                                   sn               : Rc<ScenarioNode>,
-                                   mut from_n       : u32) -> (Option<TreeListRow>, u32) {
-    loop {
-        let row      = single_selection.item(from_n).unwrap().downcast::<TreeListRow>().expect("row");
-        let dest_sno = row.item().and_downcast::<ScenarioNodeObject>().expect("sno is expd");
-        if Rc::ptr_eq( &dest_sno.get_node(), &sn ) {
-            return (Some(row.clone()), from_n); }
-        if (from_n as i32) == ((single_selection.n_items() as i32) - 1) { return (None, from_n); }
-        from_n += 1;
-    }
-}
 // AddNodeButton //////////////////////////////////////////
 struct AddNodeButton { // parts of AddNodePopButton
     pub button       : Isv2Button,
@@ -118,7 +89,7 @@ impl AddNodeButton {
 
         if !add_node_button.button_state.get() { println!("(button_clicked) button is disabled"); return; }
 
-        let new_node = ScenarioNodeObject::new_with_seq_id(0, gen_id());
+        let new_node = ScenarioNodeObject::new_with_seq_id(0, tree_manipulate::gen_id());
         *new_node.get_node().value.borrow_mut() = match &add_node_button.node_type {
             scenario_node::Item::Group    => scenario_node::Item::Group,
             scenario_node::Item::Scene(_) => scenario_node::Item::Scene(Scene::default()),
@@ -135,7 +106,7 @@ impl AddNodeButton {
                                                              &root_store,
                                                              &new_node);
             add_node_button.button.get_history().push(h);
-            add_node_to_empty_store(add_node_button.button.clone(),
+            tree_manipulate::add_node_to_empty_store(add_node_button.button.clone(),
                                     &new_node);
             return;
         }
@@ -154,9 +125,9 @@ impl AddNodeButton {
                 else {
                     println!("(AddNodeButton)unexpected condition {}:{}", file!(), line!());
                     return Err(()); }};
-            let (_s, n) = search_row_with_sn_up_in_ssel(&*btn.get_selection(),
-                                                        target_s,
-                                                        btn.get_selection().selected());
+            let (_s, n) = tree_manipulate::search_row_with_sn_up_in_ssel(&*btn.get_selection(),
+                                                                         target_s,
+                                                                         btn.get_selection().selected());
             btn.get_selection().set_selected(n); // selection is updated tempolary to create history handle
             Ok(())
         }
@@ -201,9 +172,9 @@ impl AddNodeButton {
                             else {
                                 println!("(AddNodeButton)unexpected condition {}:{}", file!(), line!());
                                 return; }};
-                        let (_s, n) = search_row_with_sn_up_in_ssel(&*btn.get_selection(),
-                                                                     target_s,
-                                                                     btn.get_selection().selected());
+                        let (_s, n) = tree_manipulate::search_row_with_sn_up_in_ssel(&*btn.get_selection(),
+                                                                                     target_s,
+                                                                                     btn.get_selection().selected());
                         btn.get_selection().set_selected(n);
                         ope_type = Operation::AddNeighbor;
                     },
@@ -275,7 +246,7 @@ impl AddNodeButton {
         else {
             add_func = add_neighbor_func; }
 
-        if let Ok(hdl) = isv2button_to_dest_member4(&btn){
+        if let Ok(hdl) = tree_manipulate::isv2button_to_dest_member4(&btn){
             add_func(&hdl, &new_node);
 
             let mut h= OperationHistoryItem::new_from_handle(ope_type, hdl); // error! must chose AddNeighbor or AddChild
@@ -284,9 +255,9 @@ impl AddNodeButton {
             add_node_button.button.get_history().push(h);
 
             // update selection to select added node
-            let (s, n) = search_row_with_sn_down_in_ssel(&*btn.get_selection(),
-                                                         new_node.get_node().clone(),
-                                                         btn.get_selection().selected());
+            let (s, n) = tree_manipulate::search_row_with_sn_down_in_ssel(&*btn.get_selection(),
+                                                                          new_node.get_node().clone(),
+                                                                          btn.get_selection().selected());
             if s.is_some() { btn.get_selection().set_selected(n); }
         } else {
             println!("(add_node_button) unexpected condition!");
@@ -418,11 +389,6 @@ impl AddNodePopButton{
     }
 }
 
-// gen_id /////////////////////////////////////////////////
-fn gen_id() -> i32 {
-    static COUNT: AtomicI32 = AtomicI32::new(1000);
-    COUNT.fetch_add(1, Ordering::SeqCst)
-}
 // load_css ////////////////////////////////////////////////
 pub fn load_css() {
     // Load the CSS file and add it to the provider
@@ -451,47 +417,6 @@ fn my_creator(obj: &Object) -> Option<ListModel>{
     }
 
 }
-
-// add_node_to_empty_store /////////////////////////////
-fn add_node_to_empty_store(a: Isv2Button, sno: &ScenarioNodeObject) {
-    a.get_store().insert( 0, sno );
-}
-// isv2button_to_dest_member ///////////////////////////////
-
-fn isv2button_to_dest_member4(b: &Isv2Button) ->
-    Result<TreeManipulationHandle, &'static str> {
-
-        if b.get_selection().selected_item().is_none() {
-            return Err("not selected"); }
-
-        let root_store= b.get_selection() // selection is a member of Isv2Button
-            .model().unwrap() // TreeListModel
-            .downcast::<TreeListModel>().expect("TreeListModel")
-            .model()          // ListModel
-            .downcast::<gio::ListStore>().expect("ListStore");
-
-        let obj               = b.get_selection().selected_item().unwrap();
-        let dest_row          = obj.downcast_ref::<TreeListRow>().expect("TreeListRow is expected");
-        let dest_sno          = dest_row.item().and_downcast::<ScenarioNodeObject>().expect("sno is expd");
-        let dest_store        = row_to_parent_store(dest_row, &root_store);
-
-        let dest_parent_row   = row_to_parent_row(dest_row);
-        let dest_parent_store = row_to_parent_store(&dest_parent_row, &root_store);
-        let dest_parent_sno   = get_parent_sno(&dest_sno, &dest_parent_row, &dest_store);
-
-        let hdl = TreeManipulationHandle{
-            bt           : dest_sno.get_bt().into(),
-            row          : Some(dest_row.clone().into()),
-            sno          : Some(dest_sno.into()),
-            store        : Some(dest_store.clone().into()),
-            depth        : Cell::new(dest_row.depth()),
-            size         : Cell::new(dest_store.n_items()),
-            parent_row   : Some(dest_parent_row.clone().into()),
-            parent_sno   : Some(dest_parent_sno.into()),
-            parent_store : Some(dest_parent_store.into()),
-        };
-        Ok( hdl )
-    }
 
 // build_ui ////////////////////////////////////////////////
 pub fn build_ui(app: &Application) {
@@ -649,7 +574,7 @@ pub fn build_ui(app: &Application) {
                                                                  history.clone());
     remove_button.connect_clicked(glib::clone!(@strong mediator,
                                                @strong selection_model => move |a| {
-        if let Ok(hdl) = isv2button_to_dest_member4(a){
+        if let Ok(hdl) = tree_manipulate::isv2button_to_dest_member4(a){
             let h= OperationHistoryItem::new_from_handle(Operation::Remove, hdl);
             a.get_history().push(h.clone());
             remove_node(h.src.store.unwrap().as_ref(), h.src.sno.unwrap().as_ref());

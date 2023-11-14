@@ -136,7 +136,7 @@ T.B.W.
 
 T.B.W.
 
-# Appriciate for your help
+# Appreciate for your help
 
 When you create an image collection and sell or publish it on a
 digital content market or creator support site, 

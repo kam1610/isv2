@@ -841,6 +841,8 @@ impl Isv2CropWindow {
                 let r = obj.crop_temp_rect.borrow().clone();
                 let crop_str = format!("{},{},{},{}", r.x(), r.y(), r.width(), r.height());
                 obj.editor.upgrade().unwrap().crop_entry.set_text(&crop_str);
+                obj.sno.get_node().set_scene_crop_en(true);
+                obj.editor.upgrade().unwrap().crop_check.set_active(true);
                 obj.win.close();
             }));
 

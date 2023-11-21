@@ -24,24 +24,30 @@ use std::rc::{Rc, Weak};
 use serde::{Deserialize, Serialize};
 
 // ScenarioNodeSerde ///////////////////////////////////////
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub enum HasBranches{ Both, Neighbor, Child, None, }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ScenarioNodeSerde{
     pub value       : RefCell<Item>,
     pub bt          : Cell<BranchType>,
     pub id          : Cell<i32>,
-    pub has_n_and_c : bool,
+    pub has_n_and_c : Cell<HasBranches>,
 }
 impl From<&ScenarioNode> for ScenarioNodeSerde{
     fn from(sn: &ScenarioNode) -> Self{
-        let has_n_and_c = {
-            if sn.child.borrow().as_ref().is_some() &&
-                sn.neighbor.borrow().as_ref().is_some() { true }
-            else { false }};
+        let has_n_and_c =
+            match (sn.child.borrow().as_ref().is_some(),
+                   sn.neighbor.borrow().as_ref().is_some()) {
+                (true,  true ) => HasBranches::Both,
+                (true,  false) => HasBranches::Child,
+                (false, true ) => HasBranches::Neighbor,
+                (false, false) => HasBranches::None,
+        };
         Self{
             value : RefCell::new((*sn.value.borrow()).clone()),
             bt    : sn.bt.clone(),
             id    : sn.id.clone(),
-            has_n_and_c,
+            has_n_and_c: has_n_and_c.into(),
         }
     }
 }
@@ -52,7 +58,7 @@ impl ScenarioNodeSerde{
             value       : RefCell::new(Item::Terminal),
             bt          : Cell::new(BranchType::Child),
             id          : Cell::new(-1),
-            has_n_and_c : false,
+            has_n_and_c : Cell::new(HasBranches::None),
         }
     }
     // from_sn /////////////////////////////////////////////
@@ -64,10 +70,6 @@ impl ScenarioNodeSerde{
             if p.is_some(){
                 let sn_ser = ScenarioNodeSerde::from(&*p.clone().unwrap());
                 dest.push(sn_ser);
-                if p.as_ref().unwrap().child.borrow().as_ref().is_none() &&
-                    p.as_ref().unwrap().neighbor.borrow().as_ref().is_none() {
-                        dest.push( ScenarioNodeSerde::terminal_node() );
-                    }
             } else {
                 break;
             }
@@ -98,11 +100,12 @@ impl fmt::Display for ScenarioNodeSerde {
             disp_str += "C:"; }
         else {
             disp_str += "N:"; }
-
-        if self.has_n_and_c {
-            disp_str += "n-c: "; }
-        else {
-            disp_str += "   : "; }
+        match self.has_n_and_c.get() {
+            HasBranches::Both     => { disp_str += "n+c: "; },
+            HasBranches::Child    => { disp_str += "c  : "; },
+            HasBranches::Neighbor => { disp_str += "n  : "; },
+            HasBranches::None     => { disp_str += "nil: "; },
+        }
         disp_str += &mat_text.replace("\n","");
         disp_str += &scene_bgimg;
 
@@ -404,7 +407,7 @@ impl ScenarioNode {
                 },
                 _ => ()
             };
-            let has_n_and_c = node.has_n_and_c;
+            let has_n_and_c = node.has_n_and_c.get();
             let sn = Rc::new(ScenarioNode::from(node));
             if head.is_some() {
                 if sn.bt.get() == BranchType::Neighbor {
@@ -416,9 +419,24 @@ impl ScenarioNode {
                 root = Some(sn.clone());
             }
             head = Some(sn.clone());
-            if has_n_and_c {
-                stack.push( sn.clone() );
+
+            // if has_n_and_c {
+            //     stack.push( sn.clone() );
+            // }
+
+            match has_n_and_c {
+                HasBranches::None => {
+                    if stack.len() == 0 {
+                        break;
+                    }
+                    head = stack.pop();
+                },
+                HasBranches::Both => {
+                    stack.push( sn.clone() );
+                },
+                _ => ()
             }
+
         }
         root
     }

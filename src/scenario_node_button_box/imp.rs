@@ -89,7 +89,6 @@ impl AddNodeButton {
             scenario_node::Item::Mat(_)   => scenario_node::Item::Mat(Mat::default()),
             scenario_node::Item::Ovimg(_) => scenario_node::Item::Ovimg(Ovimg::default()),
             scenario_node::Item::Pmat(_)  => scenario_node::Item::Pmat(Mat::default()),
-            _ => scenario_node::Item::Group,
         };
         // confirm empty list
         if btn.get_selection().selected_item().is_none() {
@@ -143,7 +142,6 @@ impl AddNodeButton {
                         else {
                             return; }
                     },
-                    _ => { ope_type = Operation::AddChild; }
                 };
             },
             // ope:scn /////////////////////////////////////
@@ -170,7 +168,6 @@ impl AddNodeButton {
                         btn.get_selection().set_selected(n);
                         ope_type = Operation::AddNeighbor;
                     },
-                    _ => { ope_type = Operation::AddChild; }
                 };
             },
             // ope:pg,pm ///////////////////////////////////
@@ -194,7 +191,6 @@ impl AddNodeButton {
                         else {
                             return; }
                     },
-                    _ => { ope_type = Operation::AddChild; }
                 };
             },
             // ope:mat,ovi /////////////////////////////////
@@ -215,10 +211,8 @@ impl AddNodeButton {
                     scenario_node::Item::Ovimg(_) => {
                         ope_type = Operation::AddNeighbor;
                     },
-                    _ => { ope_type = Operation::AddChild; }
                 };
             },
-            _ => { ope_type = Operation::AddChild; }
         };
 
         // select kind of addition(child or neighbor_ //////

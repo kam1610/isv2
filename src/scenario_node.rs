@@ -24,37 +24,34 @@ use std::rc::{Rc, Weak};
 use serde::{Deserialize, Serialize};
 
 // ScenarioNodeSerde ///////////////////////////////////////
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub enum HasBranches{ Both, Neighbor, Child, None, }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ScenarioNodeSerde{
     pub value       : RefCell<Item>,
     pub bt          : Cell<BranchType>,
     pub id          : Cell<i32>,
-    pub has_n_and_c : bool,
+    pub has_n_and_c : Cell<HasBranches>,
 }
 impl From<&ScenarioNode> for ScenarioNodeSerde{
     fn from(sn: &ScenarioNode) -> Self{
-        let has_n_and_c = {
-            if sn.child.borrow().as_ref().is_some() &&
-                sn.neighbor.borrow().as_ref().is_some() { true }
-            else { false }};
+        let has_n_and_c =
+            match (sn.child.borrow().as_ref().is_some(),
+                   sn.neighbor.borrow().as_ref().is_some()) {
+                (true,  true ) => HasBranches::Both,
+                (true,  false) => HasBranches::Child,
+                (false, true ) => HasBranches::Neighbor,
+                (false, false) => HasBranches::None,
+        };
         Self{
             value : RefCell::new((*sn.value.borrow()).clone()),
             bt    : sn.bt.clone(),
             id    : sn.id.clone(),
-            has_n_and_c,
+            has_n_and_c: has_n_and_c.into(),
         }
     }
 }
 impl ScenarioNodeSerde{
-    // terminal_node ///////////////////////////////////////
-    pub fn terminal_node() -> Self{
-        Self{
-            value       : RefCell::new(Item::Terminal),
-            bt          : Cell::new(BranchType::Child),
-            id          : Cell::new(-1),
-            has_n_and_c : false,
-        }
-    }
     // from_sn /////////////////////////////////////////////
     pub fn from_sn(root: Rc<ScenarioNode>) -> Vec<ScenarioNodeSerde>{
         let mut dest: Vec<ScenarioNodeSerde> = vec![];
@@ -64,10 +61,6 @@ impl ScenarioNodeSerde{
             if p.is_some(){
                 let sn_ser = ScenarioNodeSerde::from(&*p.clone().unwrap());
                 dest.push(sn_ser);
-                if p.as_ref().unwrap().child.borrow().as_ref().is_none() &&
-                    p.as_ref().unwrap().neighbor.borrow().as_ref().is_none() {
-                        dest.push( ScenarioNodeSerde::terminal_node() );
-                    }
             } else {
                 break;
             }
@@ -92,17 +85,17 @@ impl fmt::Display for ScenarioNodeSerde {
             Item::Mat(m)   => {disp_str += "Mat  :"; mat_text = m.text.clone(); },
             Item::Ovimg(_o)=> {disp_str += "Ovimg:";},
             Item::Pmat(pm) => {disp_str += "Pmat :"; mat_text = pm.text.clone(); },
-            Item::Terminal => {disp_str += "Term :";},
         }
         if self.bt.get() == BranchType::Child{
             disp_str += "C:"; }
         else {
             disp_str += "N:"; }
-
-        if self.has_n_and_c {
-            disp_str += "n-c: "; }
-        else {
-            disp_str += "   : "; }
+        match self.has_n_and_c.get() {
+            HasBranches::Both     => { disp_str += "n+c: "; },
+            HasBranches::Child    => { disp_str += "c  : "; },
+            HasBranches::Neighbor => { disp_str += "n  : "; },
+            HasBranches::None     => { disp_str += "nil: "; },
+        }
         disp_str += &mat_text.replace("\n","");
         disp_str += &scene_bgimg;
 
@@ -185,7 +178,6 @@ impl fmt::Display for ScenarioNode {
                                     &o.pos.x.to_string() + "," +
                                     &o.pos.y.to_string() + "),"),
             Item::Pmat(m)  => s+= &("P".to_owned() + &dump_mat(m) + ","),
-            Item::Terminal => s+= "T,",
         }
         match self.bt.get(){
             BranchType::Child => s+= "b:c,",
@@ -200,7 +192,6 @@ impl fmt::Display for ScenarioNode {
                 Item::Mat(_m)  => s+= "M",
                 Item::Ovimg(_o)=> s+= "O",
                 Item::Pmat(_m) => s+= "pm",
-                Item::Terminal => s+= "t",
             }
         }
         write!(f, "{}", s)
@@ -306,7 +297,6 @@ impl ScenarioNode {
             Item::Mat(m)   => {disp_str += "Mat:"; mat_text = m.text.clone(); },
             Item::Ovimg(_o)=> {disp_str += "Ovimg:";},
             Item::Pmat(pm) => {disp_str += "Pmat:"; mat_text = pm.text.clone(); },
-            Item::Terminal => {disp_str += "Term:";},
         }
 
         disp_str += &mat_text.replace("\n","");
@@ -394,17 +384,7 @@ impl ScenarioNode {
 
             println!("(from_serde) {}", node);
 
-            match *node.value.borrow()  {
-                Item::Terminal => {
-                    if stack.len() == 0 {
-                        break;
-                    }
-                    head = stack.pop();
-                    continue;
-                },
-                _ => ()
-            };
-            let has_n_and_c = node.has_n_and_c;
+            let has_n_and_c = node.has_n_and_c.get();
             let sn = Rc::new(ScenarioNode::from(node));
             if head.is_some() {
                 if sn.bt.get() == BranchType::Neighbor {
@@ -416,9 +396,20 @@ impl ScenarioNode {
                 root = Some(sn.clone());
             }
             head = Some(sn.clone());
-            if has_n_and_c {
-                stack.push( sn.clone() );
+
+            match has_n_and_c {
+                HasBranches::None => {
+                    if stack.len() == 0 {
+                        break;
+                    }
+                    head = stack.pop();
+                },
+                HasBranches::Both => {
+                    stack.push( sn.clone() );
+                },
+                _ => ()
             }
+
         }
         root
     }
@@ -615,7 +606,6 @@ impl ScenarioNode {
                     Item::Mat(_)   => false,
                     Item::Ovimg(_) => false,
                     Item::Pmat(_)  => false,
-                    Item::Terminal => false,
                 }
             },
             Item::Scene(_) => {
@@ -646,7 +636,6 @@ impl ScenarioNode {
                     Item::Mat(_)   => false,
                     Item::Ovimg(_) => false,
                     Item::Pmat(_)  => false,
-                    Item::Terminal => false,
                 }
             },
             Item::Scene(_) => {
@@ -684,9 +673,6 @@ impl ScenarioNode {
                     _ => false,
                 }
             },
-            Item::Terminal => {
-                false
-            }
         }
     }
     // can_be_neighbor_or_child_auto ///////////////////////
@@ -707,7 +693,6 @@ impl ScenarioNode {
                     Item::Mat(_)   => false,
                     Item::Ovimg(_) => false,
                     Item::Pmat(_)  => true,
-                    _ => false,
                 }
             },
             Item::Page(_) => {
@@ -718,7 +703,6 @@ impl ScenarioNode {
                     Item::Mat(_)   => true,
                     Item::Ovimg(_) => true,
                     Item::Pmat(_)  => true,
-                    _ => false,
                 }
             },
             Item::Mat(_) | Item::Ovimg(_)=> {
@@ -729,7 +713,6 @@ impl ScenarioNode {
                     Item::Mat(_)   => true,
                     Item::Ovimg(_) => true,
                     Item::Pmat(_)  => true,
-                    _ => false,
                 }
             },
             Item::Pmat(_) => {
@@ -740,12 +723,8 @@ impl ScenarioNode {
                     Item::Mat(_)   => false,
                     Item::Ovimg(_) => false,
                     Item::Pmat(_)  => true,
-                    _ => false,
                 }
             },
-            Item::Terminal => {
-                false
-            }
         }
     }
     // get_label_type //////////////////////////////////
@@ -1189,7 +1168,6 @@ pub enum Item{
     Mat(Mat),
     Ovimg(Ovimg),
     Pmat(Mat),
-    Terminal /* for serialized structure */
 }
 impl Default for Item{
     fn default() -> Self{

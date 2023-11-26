@@ -1,6 +1,8 @@
 pub mod pref_actions{
 
     use std::rc::Rc;
+    use std::path::Prefix::Verbatim;
+    use std::ffi::OsStr;
 
     use gtk::prelude::*;
     use gtk::glib::clone;
@@ -20,6 +22,20 @@ pub mod pref_actions{
 
     pub const ACT_EDIT_PREF   : &str = "edit_pref";
 
+    // valid_export_dir_name ///////////////////////////////
+    pub fn valid_export_dir_name(path_str: &str) -> bool {
+        if (path_str == "") ||
+            (path_str == ".") || (path_str == ".."){
+                return false; }
+
+        if !Verbatim(OsStr::new(path_str)).is_verbatim() ||
+            path_str.contains(std::path::MAIN_SEPARATOR) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
     // PrefEditWin /////////////////////////////////////////
     struct PrefEditWin{
         win             : Window,
@@ -31,13 +47,40 @@ pub mod pref_actions{
         button_box      : Box,
         ok_button       : Button,
         cancel_button   : Button,
+        param           : Isv2Parameter,
         mediator        : Isv2Mediator,
         selection       : SingleSelection,
     }
     impl PrefEditWin{
         // appry_prefs /////////////////////////////////////
         fn apply_prefs(&self) {
+            let target_width = {
+                if let Ok(w) = self.target_width.buffer().text().parse::<i32>(){
+                    w }
+                else {
+                    return; }
+            };
+            if (target_width < 0) || (9999 < target_width) {
+                return; }
 
+            let target_height = {
+                if let Ok(h) = self.target_height.buffer().text().parse::<i32>(){
+                    h }
+                else {
+                    return; }
+            };
+            if (target_height < 0) || (9999 < target_height) {
+                return; }
+
+            let export_dir = self.export_dir.buffer().text();
+            if !valid_export_dir_name(&export_dir){
+                return; }
+
+            self.param.set_property("target_width",  target_width);
+            self.param.set_property("target_height", target_height);
+            self.param.set_property("export_dir",    export_dir);
+
+            self.win.close();
         }
         // build ///////////////////////////////////////////
         fn build(param    : Isv2Parameter,
@@ -58,26 +101,26 @@ pub mod pref_actions{
                 win, vbox, grid,
                 target_width, target_height, export_dir,
                 button_box, ok_button, cancel_button,
-                mediator, selection};
+                param, mediator, selection};
             let obj = Rc::new(obj);
 
             let target_width_label =
                 Label::builder().label("target width[1--9999]").halign(Align::End).build();
             obj.grid.attach(&target_width_label, 0, 0, 1, 1);
             obj.grid.attach(&obj.target_width, 1, 0, 1, 1);
-            obj.target_width.buffer().set_text( &(param.property::<i32>("target_width").to_string()) );
+            obj.target_width.buffer().set_text( &(obj.param.property::<i32>("target_width").to_string()) );
 
             let target_height_label =
                 Label::builder().label("target height[1--9999]").halign(Align::End).build();
             obj.grid.attach(&target_height_label, 0, 1, 1, 1);
             obj.grid.attach(&obj.target_height, 1, 1, 1, 1);
-            obj.target_height.buffer().set_text( &(param.property::<i32>("target_height").to_string()) );
+            obj.target_height.buffer().set_text( &(obj.param.property::<i32>("target_height").to_string()) );
 
             let export_dir_label =
                 Label::builder().label("export dir name").halign(Align::End).build();
             obj.grid.attach(&export_dir_label, 0, 2, 1, 1);
             obj.grid.attach(&obj.export_dir, 1, 2, 1, 1);
-            obj.export_dir.buffer().set_text( &(param.property::<String>("export_dir")) );
+            obj.export_dir.buffer().set_text( &(obj.param.property::<String>("export_dir")) );
 
             // buttons /////////////////////////////////////
             obj.button_box.set_halign(Align::End);
@@ -118,4 +161,18 @@ pub mod pref_actions{
         act_edit_pref
     }
 
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::pref_actions::valid_export_dir_name;
+
+    #[test]
+    fn test_valid_export_dir_name() {
+        assert_eq!(false, valid_export_dir_name(""));
+        assert_eq!(true,  valid_export_dir_name("a"));
+        assert_eq!(false, valid_export_dir_name("."));
+        assert_eq!(false, valid_export_dir_name("/"));
+        assert_eq!(false, valid_export_dir_name("a/b"));
+    }
 }

@@ -536,6 +536,9 @@ pub fn build_sample_tree() -> ScenarioNodeObject{
 #[macro_use]
 mod test {
     use super::*;
+    use crate::scenario_node::ScenarioNode;
+    use crate::scenario_node::Item;
+    use crate::scenario_node::ScenarioNodeSerde;
 
     #[test]
     fn test_scenario_node_dump(){

@@ -55,6 +55,22 @@ pub mod pref_actions{
         selection       : SingleSelection,
     }
     impl PrefEditWin{
+        // pref_editor_key_ctrl ////////////////////////////
+        fn pref_editor_key_ctrl(obj: Rc<Self>) -> EventControllerKey {
+            let kctrl = EventControllerKey::new();
+            kctrl.connect_key_pressed(
+                move|_ctrl, key, _code, _state|{
+                    println!("key={}", key.name().unwrap().as_str());
+                    let mut prop = Propagation::Stop;
+                    match key.name().unwrap().as_str() {
+                        "Escape" => { obj.win.close(); },
+                        "Return" => { obj.apply_prefs(); },
+                        _        => { prop = Propagation::Proceed; }
+                    }
+                    prop
+                });
+            kctrl
+        }
         // appry_prefs /////////////////////////////////////
         fn apply_prefs(&self) {
             let target_width = {
@@ -63,7 +79,7 @@ pub mod pref_actions{
                 else {
                     return; }
             };
-            if (target_width < 0) || (9999 < target_width) {
+            if (target_width < 1) || (9999 < target_width) {
                 return; }
 
             let target_height = {
@@ -72,7 +88,7 @@ pub mod pref_actions{
                 else {
                     return; }
             };
-            if (target_height < 0) || (9999 < target_height) {
+            if (target_height < 1) || (9999 < target_height) {
                 return; }
 
             let export_dir = self.export_dir.buffer().text();
@@ -152,18 +168,12 @@ pub mod pref_actions{
             obj.vbox.append(&obj.button_box);
 
             // keycontroller ///////////////////////////////
-            let kctrl = EventControllerKey::new();
-            kctrl.connect_key_pressed(
-                clone!(@strong obj => move|_ctrl, key, _code, _state|{
-                    let mut prop = Propagation::Stop;
-                    match key.name().unwrap().as_str() {
-                        "Escape" => { obj.win.close(); },
-                        "Return" => { obj.apply_prefs(); },
-                        _        => { prop = Propagation::Proceed; }
-                    }
-                    prop
-                }));
-            obj.win.add_controller(kctrl);
+            let kctrl_for_entry = clone!(@strong obj => move|_e:&Entry|{obj.apply_prefs();});
+            obj.target_width.connect_activate(kctrl_for_entry.clone());
+            obj.target_height.connect_activate(kctrl_for_entry.clone());
+            obj.export_dir.connect_activate(kctrl_for_entry.clone());
+
+            obj.win.add_controller(Self::pref_editor_key_ctrl(obj.clone()));
 
             obj.win.set_child(Some(&obj.vbox));
             obj.win.present();

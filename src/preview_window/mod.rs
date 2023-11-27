@@ -40,7 +40,7 @@ use crate::scenario_node::Item;
 use crate::scenario_node::LabelType;
 use crate::scenario_node::ScenarioNode;
 use crate::scenario_node_object::ScenarioNodeObject;
-
+use crate::status_bar::StatusBar;
 
 glib::wrapper! {
     pub struct PreviewWindow(ObjectSubclass<imp::PreviewWindow>)
@@ -52,6 +52,7 @@ glib::wrapper! {
 impl PreviewWindow {
     pub fn set_mediator(&self, m: WeakRef<Object>){ *self.imp().mediator.borrow_mut() = m; }
     pub fn set_parameter(&self, p: WeakRef<Isv2Parameter>){ *self.imp().parameter.borrow_mut() = p; }
+    pub fn set_status_bar(&self, sb: Option<Rc<StatusBar>>){ *self.imp().status_bar.borrow_mut() = sb; }
     // draw_func_for_scene /////////////////////////////////
     fn draw_func_for_scene(sn         : &Rc<ScenarioNode>,
                            pbuf       : &Option<Pixbuf>,
@@ -406,6 +407,20 @@ impl PreviewWindow {
             std::fs::create_dir(path_buf).expect("create_dir in export_images");
         }
 
+        // count page/pmat
+        let mut total_num = 0;
+        loop{
+            if let Some(sn) = ScenarioNode::traverse(&mut vec){
+                match &*sn.value.borrow() {
+                    Item::Page(_) | Item::Pmat(_) => { total_num+= 1; },
+                    _ => ()
+                }
+            } else {
+                break;
+            }
+        }
+
+        let mut vec = vec![p.clone()];
         loop{
             if let Some(sn) = ScenarioNode::traverse(&mut vec){
                 match &*sn.value.borrow() {
@@ -457,7 +472,7 @@ impl PreviewWindow {
                                             path_buf.to_str().unwrap()); return; } };
 
                         surface.write_to_png(&mut out_file).expect("write_to_png in export_images");
-                        println!("(export_images) {} is written", path_buf.to_str().unwrap());
+                        (&*self.imp().status_bar.borrow()).clone().unwrap().set_status(&format!("(export_images) {}/{}, {} was written", img_seq+1, total_num, path_buf.to_str().unwrap()));
 
                         img_seq+= 1;
                     },

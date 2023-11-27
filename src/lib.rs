@@ -15,6 +15,7 @@ mod scenario_text_view;
 mod sno_list;
 mod tree_util;
 mod view_menu;
+mod status_bar;
 
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -65,6 +66,7 @@ use crate::scenario_node_button_box::ScenarioNodeButtonBox;
 use crate::tree_util::tree_manipulate;
 use crate::view_menu::view_actions;
 use crate::pref_menu::pref_actions;
+use crate::status_bar::StatusBar;
 
 // load_css ////////////////////////////////////////////////
 pub fn load_css() {
@@ -329,13 +331,21 @@ pub fn build_ui(app: &Application) {
         }
     }));
 
+    // vbox(pane + statusbar)
+    let sbar = StatusBar::build();
+    preview_window.set_status_bar(Some(sbar.clone()));
+
+    let vbox = Box::builder().orientation(Orientation::Vertical).build();
+    vbox.append(&pane);
+    vbox.append(&sbar.entry);
+
     // Create a window
     let window = ApplicationWindow::builder()
         .application(app)
         .title( String::from("isv2") )
         .default_width(600)
         .default_height(800)
-        .child(&pane)
+        .child(&vbox)
         .build();
 
     window.connect_default_width_notify( glib::clone!(@strong button_box,

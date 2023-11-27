@@ -1,5 +1,6 @@
 mod drawing_util;
 mod file_menu;
+mod pref_menu;
 mod isv2_button;
 mod isv2_mediator;
 mod isv2_parameter;
@@ -63,6 +64,7 @@ use crate::scenario_text_view::ScenarioTextView;
 use crate::scenario_node_button_box::ScenarioNodeButtonBox;
 use crate::tree_util::tree_manipulate;
 use crate::view_menu::view_actions;
+use crate::pref_menu::pref_actions;
 
 // load_css ////////////////////////////////////////////////
 pub fn load_css() {
@@ -345,6 +347,9 @@ pub fn build_ui(app: &Application) {
 
     // menu ////////////////////////////////////////////////
     let menu      = Menu::new();
+
+    ////////////////////////////////////////////////////////
+    // file menu ///////////////////////////////////////////
     let menu_file = Menu::new();
     menu.append_submenu(Some("_File"), &menu_file);
     // save as /////////////////////////////////////////////
@@ -374,6 +379,7 @@ pub fn build_ui(app: &Application) {
     let menu_item_export_img = MenuItem::new(Some("_Export images"),
                                              Some( &("app.".to_string() + actions::ACT_FILE_EXPORT_IMG) ));
     menu_file.append_item(&menu_item_export_img);
+    ////////////////////////////////////////////////////////
     // view menu ///////////////////////////////////////////
     let menu_view = Menu::new();
     menu.append_submenu(Some("_View"), &menu_view);
@@ -400,9 +406,21 @@ pub fn build_ui(app: &Application) {
     let act_toggle_bgimg = view_actions::act_toggle_bgimg(param.clone(), mediator.clone(), selection_model.clone());
     app.add_action(&act_toggle_bgimg);
     let menu_item_toggle_bgimg = MenuItem::new(Some("_ToggleBgimg"),
-                                              Some( &("app.".to_string() + view_actions::ACT_TOGGLE_BGIMG) ));
+                                               Some( &("app.".to_string() + view_actions::ACT_TOGGLE_BGIMG) ));
     menu_view.append_item(&menu_item_toggle_bgimg);
-
+    ////////////////////////////////////////////////////////
+    // preference menu /////////////////////////////////////
+    let menu_pref = Menu::new();
+    menu.append_submenu(Some("_Preference"), &menu_pref);
+    // edit_preference /////////////////////////////////////
+    let act_edit_pref = pref_actions::act_open_pref_menu(param.clone(),
+                                                         mediator.clone(),
+                                                         selection_model.clone());
+    app.add_action(&act_edit_pref);
+    let menu_item_edit_pref = MenuItem::new(Some("_EditPreference"),
+                                            Some( &("app.".to_string() + pref_actions::ACT_EDIT_PREF) ));
+    menu_pref.append_item(&menu_item_edit_pref);
+    ////////////////////////////////////////////////////////
     // set menubar /////////////////////////////////////////
     app.set_menubar(Some(&menu));
 
@@ -518,6 +536,9 @@ pub fn build_sample_tree() -> ScenarioNodeObject{
 #[macro_use]
 mod test {
     use super::*;
+    use crate::scenario_node::ScenarioNode;
+    use crate::scenario_node::Item;
+    use crate::scenario_node::ScenarioNodeSerde;
 
     #[test]
     fn test_scenario_node_dump(){

@@ -7,6 +7,7 @@ pub mod pref_actions{
     use gtk::prelude::*;
     use gtk::glib::clone;
     use gtk::gio::SimpleAction;
+    use gtk::EventControllerKey;
     use gtk::Orientation;
     use gtk::SingleSelection;
     use gtk::Label;
@@ -16,9 +17,11 @@ pub mod pref_actions{
     use gtk::Grid;
     use gtk::Align;
     use gtk::Entry;
+    use gtk::glib::signal::Propagation;
 
     use crate::isv2_mediator::Isv2Mediator;
     use crate::isv2_parameter::Isv2Parameter;
+    use crate::sno_list::selection_to_sno;
 
     pub const ACT_EDIT_PREF   : &str = "edit_pref";
 
@@ -79,6 +82,10 @@ pub mod pref_actions{
             self.param.set_property("target_width",  target_width);
             self.param.set_property("target_height", target_height);
             self.param.set_property("export_dir",    export_dir);
+
+            if let Some((sno,_store)) = selection_to_sno(self.selection.clone()) {
+                self.mediator.emit_by_name::<()>("scene-attribute-changed", &[&sno]);
+            }
 
             self.win.close();
         }
@@ -143,6 +150,20 @@ pub mod pref_actions{
 
             obj.vbox.append(&obj.grid);
             obj.vbox.append(&obj.button_box);
+
+            // keycontroller ///////////////////////////////
+            let kctrl = EventControllerKey::new();
+            kctrl.connect_key_pressed(
+                clone!(@strong obj => move|_ctrl, key, _code, _state|{
+                    let mut prop = Propagation::Stop;
+                    match key.name().unwrap().as_str() {
+                        "Escape" => { obj.win.close(); },
+                        "Return" => { obj.apply_prefs(); },
+                        _        => { prop = Propagation::Proceed; }
+                    }
+                    prop
+                }));
+            obj.win.add_controller(kctrl);
 
             obj.win.set_child(Some(&obj.vbox));
             obj.win.present();

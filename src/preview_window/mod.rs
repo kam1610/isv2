@@ -32,6 +32,9 @@ use std::fs::OpenOptions;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::str::FromStr;
+use std::thread;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 use crate::drawing_util::util::CursorState;
 use crate::drawing_util::util;
@@ -359,6 +362,8 @@ impl PreviewWindow {
                          param : &Isv2Parameter,
                          root  : &impl IsA<Window>){
 
+        let status_bar = (&*self.imp().status_bar.borrow()).clone().unwrap();
+
         let target_w = param.property::<i32>("target_width");
         let target_h = param.property::<i32>("target_height");
 
@@ -420,68 +425,129 @@ impl PreviewWindow {
             }
         }
 
-        let mut vec = vec![p.clone()];
-        loop{
-            if let Some(sn) = ScenarioNode::traverse(&mut vec){
-                match &*sn.value.borrow() {
-                    Item::Scene(_) => { // prepare scaled image
-                        let sn_ref = {
-                            if let Some(s) = ScenarioNode::search_def_label(sn.clone()) { s }
-                            else { sn.clone() }};
-                        let bgimg = {
-                            if let Some(b) = sn_ref.get_scene_bgimg() { b }
-                            else { println!("the node is not scene"); PathBuf::new() } };
-                        let mut img_path = param.property::<PathBuf>("project_dir");
-                        img_path.push( bgimg );
-                        if let Ok(p) = Pixbuf::from_file( img_path ) {
-                            pbuf = Some(p); }
-                        else {
-                            pbuf = None; }
-                        if pbuf.is_some(){
-                            scale_pbuf = Self::prepare_scale_crop_buf_sub(param,
-                                                                          &sn_ref,
-                                                                          &pbuf.clone().unwrap()) };
-                    },
-                    Item::Page(_) | Item::Pmat(_) => {
-                        area.clear();
-                        Self::collect_mats(&sn, &mut area);
-                        // 0. prepare surface
-                        let surface = {
-                            if let Ok(sf) = ImageSurface::create(Format::ARgb32, target_w, target_h) { sf }
-                            else { println!("(export_images) creating curface failed"); return; } };
-                        let cr = {
-                            if let Ok(ctx) = Context::new(&surface) { ctx }
-                            else { println!("(export_images) creating context failed"); return; } };
-                        // 1. draw scene
-                        Self::draw_func_for_scene(&sn, &pbuf.clone(), &scale_pbuf, target_w, target_h, &cr, None);
-                        // 2. draw mats
-                        Self::draw_mats_sub(&area, &self.pango_context(), &cr, 0/* w */, 0/* h */);
+        //let (tx, rx) = glib::MainContext::channel(glib::source::Priority::DEFAULT);
+        //let p = Arc::new(p.clone());
+        //let p:Arc<Mutex<Rc<ScenarioNode>>> = Arc::new(Mutex::from(p.clone()));
 
-                        // TODO:ディレクトリがなければ作成する
-                        let mut path_buf = param.property::<PathBuf>("project_dir");
-                        path_buf.push( param.property::<String>("export_dir") );
-                        path_buf.push( format!("{:04}.png", img_seq) );
+        let (sender, receiver) = async_channel::bounded(1);
 
-                        let mut out_file  = {
-                            if let Ok(f) = OpenOptions::new()
-                                .read(false)
-                                .write(true)
-                                .create(true)
-                                .open(&path_buf) { f }
-                            else { println!("(export_images) can not open: {}",
-                                            path_buf.to_str().unwrap()); return; } };
+        let prev_win = self.clone();
+        //thread::spawn(move || {
+        glib::spawn_future_local(glib::clone!(@strong sender, @strong param, @strong p, @strong prev_win => async move {
+            let mut vec = vec![p];
+            loop{
+                if let Some(sn) = ScenarioNode::traverse(&mut vec){
+                    match &*sn.value.borrow() {
+                        Item::Scene(_) => { // prepare scaled image
+                            let sn_ref = {
+                                if let Some(s) = ScenarioNode::search_def_label(sn.clone()) { s }
+                                else { sn.clone() }};
+                            let bgimg = {
+                                if let Some(b) = sn_ref.get_scene_bgimg() { b }
+                                else { println!("the node is not scene"); PathBuf::new() } };
+                            let mut img_path = param.property::<PathBuf>("project_dir");
+                            img_path.push( bgimg );
+                            if let Ok(p) = Pixbuf::from_file( img_path ) {
+                                pbuf = Some(p); }
+                            else {
+                                pbuf = None; }
+                            if pbuf.is_some(){
+                                scale_pbuf = Self::prepare_scale_crop_buf_sub(&param,
+                                                                              &sn_ref,
+                                                                              &pbuf.clone().unwrap()) };
+                        },
+                        Item::Page(_) | Item::Pmat(_) => {
+                            area.clear();
+                            Self::collect_mats(&sn, &mut area);
+                            // 0. prepare surface
+                            let surface = {
+                                if let Ok(sf) = ImageSurface::create(Format::ARgb32, target_w, target_h) { sf }
+                                else { println!("(export_images) creating surface failed"); return; } };
+                            let cr = {
+                                if let Ok(ctx) = Context::new(&surface) { ctx }
+                                else { println!("(export_images) creating context failed"); return; } };
+                            // 1. draw scene
+                            Self::draw_func_for_scene(&sn, &pbuf.clone(), &scale_pbuf, target_w, target_h, &cr, None);
+                            // 2. draw mats
+                            Self::draw_mats_sub(&area, &prev_win.pango_context(), &cr, 0/* w */, 0/* h */);
 
-                        surface.write_to_png(&mut out_file).expect("write_to_png in export_images");
-                        (&*self.imp().status_bar.borrow()).clone().unwrap().set_status(&format!("(export_images) {}/{}, {} was written", img_seq+1, total_num, path_buf.to_str().unwrap()));
+                            // TODO:ディレクトリがなければ作成する
+                            let mut path_buf = param.property::<PathBuf>("project_dir");
+                            path_buf.push( param.property::<String>("export_dir") );
+                            path_buf.push( format!("{:04}.png", img_seq) );
 
-                        img_seq+= 1;
-                    },
-                    _ => (),
+                            let mut out_file  = {
+                                if let Ok(f) = OpenOptions::new()
+                                    .read(false)
+                                    .write(true)
+                                    .create(true)
+                                    .open(&path_buf) { f }
+                                else { println!("(export_images) can not open: {}",
+                                                path_buf.to_str().unwrap()); return; } };
+
+                            surface.write_to_png(&mut out_file).expect("write_to_png in export_images");
+
+                            sender.send(false).await.expect("The channel needs to be open.");
+
+                            gtk::glib::timeout_future_seconds(1).await;
+
+                            //let _ = tx.send(Some(img_seq+1));
+                            // status_bar.set_status(&format!("(export_images) {}/{}, {} was written",
+                            //                                img_seq+1, total_num, path_buf.to_str().unwrap()));
+
+
+                            img_seq+= 1;
+                        },
+                        _ => (),
+                    }
+                } else {
+                    break;
                 }
-            } else {
-                break;
+            };
+            //let _ = tx.send(None);
+            sender.send(true).await.expect("The channel needs to be open.");
+        }));
+
+        // rx.attach(None, move |value|
+        //           match value {
+        //               Some(value) => { println!("rx: {}", value); glib::ControlFlow::Continue},
+        //               None => glib::ControlFlow::Break });
+
+        glib::spawn_future_local(glib::clone!(@weak p => async move {
+
+            // loop{
+            //     let result = receiver.recv().await;
+
+            //     if result.is_ok() {
+            //         break;
+            //     } else {
+            //         println!("result => {:?}", result);
+            //     }
+
+
+            // }
+            let mut count = 0;
+            while let result = receiver.recv().await {
+                println!("result => {:?}", result);
+
+                status_bar.set_status(&format!("{}", count));
+                count += 1;
+
+                if result.is_err(){
+                    break;
+                }
             }
-        }
+
+
+
+            // while let Ok(_) = receiver.recv().await {
+            //     //button.set_sensitive(enable_button);
+            // }
+
+        }));
+
+
+
     }
     // detect_edge_of_area /////////////////////////////////
     pub fn detect_edge_of_area(&self, px: i32, py: i32) {

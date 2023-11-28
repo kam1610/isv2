@@ -2,7 +2,6 @@ use std::rc::Rc;
 use gtk::prelude::*;
 use gtk::Entry;
 use gtk::EntryBuffer;
-use gtk::Align;
 
 // StatusBar ///////////////////////////////////////////////
 pub struct StatusBar{

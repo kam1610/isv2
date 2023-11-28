@@ -15,6 +15,7 @@ mod scenario_text_view;
 mod sno_list;
 mod tree_util;
 mod view_menu;
+mod status_bar;
 
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -50,6 +51,7 @@ use crate::isv2_parameter::Isv2Parameter;
 use crate::operation_history::Operation;
 use crate::operation_history::OperationHistory;
 use crate::operation_history::OperationHistoryItem;
+use crate::pref_menu::pref_actions;
 use crate::preview_window::PreviewWindow;
 use crate::scenario_node::BranchType;
 use crate::scenario_node::Color;
@@ -58,13 +60,14 @@ use crate::scenario_node::LabelType;
 use crate::scenario_node::Position;
 use crate::scenario_node::{Scene, Mat};
 use crate::scenario_node_attribute_box::ScenarioNodeAttributeBox;
+use crate::scenario_node_button_box::ScenarioNodeButtonBox;
 use crate::scenario_node_object::ScenarioNodeObject;
 use crate::scenario_node_object::remove_node;
 use crate::scenario_text_view::ScenarioTextView;
-use crate::scenario_node_button_box::ScenarioNodeButtonBox;
+use crate::sno_list::selection_to_sno;
 use crate::tree_util::tree_manipulate;
 use crate::view_menu::view_actions;
-use crate::pref_menu::pref_actions;
+use crate::status_bar::StatusBar;
 
 // load_css ////////////////////////////////////////////////
 pub fn load_css() {
@@ -329,13 +332,21 @@ pub fn build_ui(app: &Application) {
         }
     }));
 
+    // vbox(pane + statusbar)
+    let sbar = StatusBar::build();
+    preview_window.set_status_bar(Some(sbar.clone()));
+
+    let vbox = Box::builder().orientation(Orientation::Vertical).build();
+    vbox.append(&pane);
+    vbox.append(&sbar.entry);
+
     // Create a window
     let window = ApplicationWindow::builder()
         .application(app)
         .title( String::from("isv2") )
         .default_width(600)
         .default_height(800)
-        .child(&pane)
+        .child(&vbox)
         .build();
 
     window.connect_default_width_notify( glib::clone!(@strong button_box,
@@ -431,11 +442,17 @@ pub fn build_ui(app: &Application) {
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_TOGGLE_BGIMG),     &["<Ctrl>b"]);
 
     // set attribute box after root is associated
-    attribute_box.update_item_type(selection_model);
+    attribute_box.update_item_type(selection_model.clone());
 
     // Present window
     window.set_show_menubar(true);
     window.present();
+
+    // initial selection state
+    if let Some((_,_)) = selection_to_sno(selection_model.clone()) {
+        mediator.emit_by_name::<()>("sno-selected", &[&selection_model]);
+    }
+
 }
 
 // build_sample_tree ///////////////////////////////////////

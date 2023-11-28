@@ -16,6 +16,7 @@ use crate::drawing_util::util;
 use crate::isv2_parameter::Isv2Parameter;
 use crate::scenario_node::ScenarioNode;
 use crate::scenario_node_object::ScenarioNodeObject;
+use crate::status_bar::StatusBar;
 
 // Object holding the state
 pub struct PreviewWindow {
@@ -31,6 +32,7 @@ pub struct PreviewWindow {
     pub(super) mediator             : RefCell<WeakRef<Object>>,
     pub(super) parameter            : RefCell<WeakRef<Isv2Parameter>>,
     pub(super) tgt_to_pwin_scale    : Cell<f64>,
+    pub(super) status_bar           : RefCell<Option<Rc<StatusBar>>>,
 }
 
 // The central trait for subclassing a GObject
@@ -82,6 +84,7 @@ impl Default for PreviewWindow {
             mediator             : RefCell::new(WeakRef::new()),
             parameter            : RefCell::new(WeakRef::new()),
             tgt_to_pwin_scale    : Cell::new(1.0),
+            status_bar           : RefCell::new(None),
         }
     }
 }

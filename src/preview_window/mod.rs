@@ -429,6 +429,9 @@ impl PreviewWindow {
         //let p = Arc::new(p.clone());
         //let p:Arc<Mutex<Rc<ScenarioNode>>> = Arc::new(Mutex::from(p.clone()));
 
+        let export_cansel_flag_ctrl :Arc<Mutex<bool>> = Arc::new(Mutex::from(false));
+        let export_cansel_flag_ref = Arc::clone(&export_cansel_flag_ctrl);
+
         let (sender, receiver) = async_channel::bounded(1);
 
         let prev_win = self.clone();
@@ -436,6 +439,11 @@ impl PreviewWindow {
         glib::spawn_future_local(glib::clone!(@strong sender, @strong param, @strong p, @strong prev_win => async move {
             let mut vec = vec![p];
             loop{
+
+                if( *export_cansel_flag_ref.lock().unwrap() ){
+                    println!("export is canceled");
+                    break; }
+
                 if let Some(sn) = ScenarioNode::traverse(&mut vec){
                     match &*sn.value.borrow() {
                         Item::Scene(_) => { // prepare scaled image
@@ -515,6 +523,7 @@ impl PreviewWindow {
 
         glib::spawn_future_local(glib::clone!(@weak p => async move {
 
+
             // loop{
             //     let result = receiver.recv().await;
 
@@ -532,6 +541,9 @@ impl PreviewWindow {
 
                 status_bar.set_status(&format!("{}", count));
                 count += 1;
+
+                if count > 2 {
+                    *export_cansel_flag_ctrl.lock().unwrap() = true; }
 
                 if result.is_err(){
                     break;

@@ -105,7 +105,7 @@ impl PreviewWindow {
                              crop_target_w      as f64, crop_target_h      as f64);
                 cr.fill().expect("draw image on PreviewWindow");
             } else {
-                println!("pbuf for background has not been prepared!");
+                // println!("pbuf for background has not been prepared!");
             }
         } else {
             println!("belong scene is not found for {:?}!", sn);
@@ -521,7 +521,7 @@ impl PreviewWindow {
         }));
 
         // receiver : progress window //////////////////////
-        glib::spawn_future_local(glib::clone!(@weak p => async move {
+        glib::spawn_future_local(async move {
             let mut count = 1;
             let prog_win = Window::builder().title( String::from("export images") ).modal(true).build();
             let vbox     = Box::builder().orientation(Orientation::Vertical).build();
@@ -547,7 +547,7 @@ impl PreviewWindow {
                 }
             }
             prog_win.close();
-        }));
+        });
 
     }
     // detect_edge_of_area /////////////////////////////////

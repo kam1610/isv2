@@ -5,6 +5,12 @@ use glib::WeakRef;
 use glib::closure_local;
 use glib::subclass::types::ObjectSubclassIsExt;
 use glib_sys;
+use glib::clone;
+use gtk::Align;
+use gtk::Box;
+use gtk::Button;
+use gtk::Orientation;
+use gtk::Label;
 use gtk::Accessible;
 use gtk::AlertDialog;
 use gtk::Buildable;
@@ -425,21 +431,25 @@ impl PreviewWindow {
             }
         }
 
-        //let (tx, rx) = glib::MainContext::channel(glib::source::Priority::DEFAULT);
-        //let p = Arc::new(p.clone());
-        //let p:Arc<Mutex<Rc<ScenarioNode>>> = Arc::new(Mutex::from(p.clone()));
-
         let export_cansel_flag_ctrl :Arc<Mutex<bool>> = Arc::new(Mutex::from(false));
         let export_cansel_flag_ref = Arc::clone(&export_cansel_flag_ctrl);
 
+        // sender   : exporing loop,
+        // receiver : progress window
         let (sender, receiver) = async_channel::bounded(1);
 
+        // sender : exporing loop //////////////////////////
         let prev_win = self.clone();
-        //thread::spawn(move || {
-        glib::spawn_future_local(glib::clone!(@strong sender, @strong param, @strong p, @strong prev_win => async move {
+        glib::spawn_future_local(glib::clone!(@strong sender,
+                                              @strong param,
+                                              @strong p,
+                                              @strong prev_win,
+                                              @strong status_bar=> async move {
+
+            gtk::glib::timeout_future_seconds(1).await; // wait for progress window
+
             let mut vec = vec![p];
             loop{
-
                 if( *export_cansel_flag_ref.lock().unwrap() ){
                     println!("export is canceled");
                     break; }
@@ -495,14 +505,10 @@ impl PreviewWindow {
 
                             surface.write_to_png(&mut out_file).expect("write_to_png in export_images");
 
+                            status_bar.set_status(&format!("{}/{}:{}", img_seq+1, total_num, path_buf.to_str().unwrap()));
+
                             sender.send(false).await.expect("The channel needs to be open.");
-
-                            gtk::glib::timeout_future_seconds(1).await;
-
-                            //let _ = tx.send(Some(img_seq+1));
-                            // status_bar.set_status(&format!("(export_images) {}/{}, {} was written",
-                            //                                img_seq+1, total_num, path_buf.to_str().unwrap()));
-
+                            gtk::glib::timeout_future_seconds(1).await; // for async debug
 
                             img_seq+= 1;
                         },
@@ -512,53 +518,36 @@ impl PreviewWindow {
                     break;
                 }
             };
-            //let _ = tx.send(None);
             sender.send(true).await.expect("The channel needs to be open.");
         }));
 
-        // rx.attach(None, move |value|
-        //           match value {
-        //               Some(value) => { println!("rx: {}", value); glib::ControlFlow::Continue},
-        //               None => glib::ControlFlow::Break });
-
+        // receiver : progress window //////////////////////
         glib::spawn_future_local(glib::clone!(@weak p => async move {
+            let mut count = 1;
+            let prog_win = Window::builder().title( String::from("export images") ).modal(true).build();
+            let vbox     = Box::builder().orientation(Orientation::Vertical).build();
+            let label    = Label::builder().label(&format!("{}/{}", count, total_num)).halign(Align::Start).build();
+            let cancel_button = Button::with_label("cancel");
 
+            cancel_button.connect_clicked(clone!(@strong prog_win => move|_b|{
+                *export_cansel_flag_ctrl.lock().unwrap() = true;
+            }));
 
-            // loop{
-            //     let result = receiver.recv().await;
+            vbox.append(&label);
+            vbox.append(&cancel_button);
+            prog_win.set_child(Some(&vbox));
+            prog_win.present();
 
-            //     if result.is_ok() {
-            //         break;
-            //     } else {
-            //         println!("result => {:?}", result);
-            //     }
-
-
-            // }
-            let mut count = 0;
             while let result = receiver.recv().await {
-                println!("result => {:?}", result);
-
-                status_bar.set_status(&format!("{}", count));
+                println!("result => {:?}, count = {}", result, count);
+                label.set_label(&format!("{}/{} was written", count, total_num));
                 count += 1;
-
-                if count > 2 {
-                    *export_cansel_flag_ctrl.lock().unwrap() = true; }
-
                 if result.is_err(){
                     break;
                 }
             }
-
-
-
-            // while let Ok(_) = receiver.recv().await {
-            //     //button.set_sensitive(enable_button);
-            // }
-
+            prog_win.close();
         }));
-
-
 
     }
     // detect_edge_of_area /////////////////////////////////

@@ -67,7 +67,6 @@ use crate::scenario_text_view::ScenarioTextView;
 use crate::sno_list::selection_to_sno;
 use crate::tree_util::tree_manipulate;
 use crate::view_menu::view_actions;
-use crate::pref_menu::pref_actions;
 use crate::status_bar::StatusBar;
 
 // load_css ////////////////////////////////////////////////

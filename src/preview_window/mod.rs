@@ -38,7 +38,6 @@ use std::fs::OpenOptions;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::str::FromStr;
-use std::thread;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -450,7 +449,7 @@ impl PreviewWindow {
 
             let mut vec = vec![p];
             loop{
-                if( *export_cansel_flag_ref.lock().unwrap() ){
+                if *export_cansel_flag_ref.lock().unwrap() {
                     println!("export is canceled");
                     break; }
 
@@ -508,7 +507,7 @@ impl PreviewWindow {
                             status_bar.set_status(&format!("{}/{}:{}", img_seq+1, total_num, path_buf.to_str().unwrap()));
 
                             sender.send(false).await.expect("The channel needs to be open.");
-                            gtk::glib::timeout_future_seconds(1).await; // for async debug
+                            //gtk::glib::timeout_future_seconds(1).await; // for async debug
 
                             img_seq+= 1;
                         },
@@ -538,7 +537,8 @@ impl PreviewWindow {
             prog_win.set_child(Some(&vbox));
             prog_win.present();
 
-            while let result = receiver.recv().await {
+            loop{
+                let result = receiver.recv().await;
                 println!("result => {:?}, count = {}", result, count);
                 label.set_label(&format!("{}/{} was written", count, total_num));
                 count += 1;

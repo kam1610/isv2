@@ -69,7 +69,7 @@ pub mod util {
         // 9. center(grab) /////////////////////////////
         if (ax-n <= px) && (px <= ax+aw+n) &&
             (ay-n <= py) && (py <= ay+ah+n) {
-                return (true, CursorState::G, Some("grab".to_string()));
+                return (true, CursorState::G, Some("move".to_string()));
             }
         return (false, CursorState::None, Some("normal".to_string()));
     }

@@ -1,0 +1,4 @@
+[target.'cfg(all(target_os = "windows"))']
+rustflags = [
+   "-C", "link-args=/LIBPATH:C:\\gtk-build\\gtk\\x64\\release\\lib"
+]

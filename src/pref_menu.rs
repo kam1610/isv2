@@ -109,7 +109,7 @@ pub mod pref_actions{
         fn build(param    : Isv2Parameter,
                  mediator : Isv2Mediator,
                  selection: SingleSelection) -> Rc<Self> {
-            let win           = Window::builder().title( String::from("preference") ).modal(true).build();
+            let win           = Window::builder().title( String::from("preferences") ).modal(true).build();
             let vbox          = Box::builder().orientation(Orientation::Vertical).build();
             let grid          = Grid::builder().build();
             let target_width  = Entry::new();

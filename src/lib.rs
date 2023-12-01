@@ -420,15 +420,15 @@ pub fn build_ui(app: &Application) {
                                                Some( &("app.".to_string() + view_actions::ACT_TOGGLE_BGIMG) ));
     menu_view.append_item(&menu_item_toggle_bgimg);
     ////////////////////////////////////////////////////////
-    // preference menu /////////////////////////////////////
+    // preferences menu ////////////////////////////////////
     let menu_pref = Menu::new();
-    menu.append_submenu(Some("_Preference"), &menu_pref);
+    menu.append_submenu(Some("_Preferences"), &menu_pref);
     // edit_preference /////////////////////////////////////
     let act_edit_pref = pref_actions::act_open_pref_menu(param.clone(),
                                                          mediator.clone(),
                                                          selection_model.clone());
     app.add_action(&act_edit_pref);
-    let menu_item_edit_pref = MenuItem::new(Some("_EditPreference"),
+    let menu_item_edit_pref = MenuItem::new(Some("_EditPreferences"),
                                             Some( &("app.".to_string() + pref_actions::ACT_EDIT_PREF) ));
     menu_pref.append_item(&menu_item_edit_pref);
     ////////////////////////////////////////////////////////

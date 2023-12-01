@@ -22,6 +22,7 @@ use std::fmt;
 use std::path::PathBuf;
 use std::rc::{Rc, Weak};
 use serde::{Deserialize, Serialize};
+use dunce;
 
 // ScenarioNodeSerde ///////////////////////////////////////
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -356,7 +357,7 @@ impl ScenarioNode {
                 let prev_bgimg = p.clone().unwrap().get_scene_bgimg();
                 if prev_bgimg.is_none() { continue; }
                 let prev_abs_file = prev_base_dir.join( prev_bgimg.unwrap() );
-                let prev_abs_file = prev_abs_file.canonicalize().expect("canonicalize");
+                let prev_abs_file = dunce::canonicalize(&prev_abs_file).expect("canonicalize");
                 if let Ok(new_relpath) = prev_abs_file.strip_prefix(new_base_dir) {
                     p.unwrap().set_scene_bgimg(Some(new_relpath.to_path_buf()));
                 } else {

@@ -3,6 +3,8 @@ pub mod tree_manipulate{
     use std::cell::Cell;
     use std::sync::atomic::{AtomicI32, Ordering};
 
+    use gtk::glib::VariantTy;
+    use gtk::gio::SimpleAction;
     use gtk::TreeListModel;
     use gtk::TreeListRow;
     use gtk::SingleSelection;
@@ -17,7 +19,22 @@ pub mod tree_manipulate{
     use crate::sno_list::get_parent_sno;
     use crate::sno_list::row_to_parent_row;
     use crate::sno_list::row_to_parent_store;
+    use crate::operation_history::OperationHistory;
 
+    pub const ACT_TREE_NODE_ADD : &str = "tree_node_add";
+
+    // act_tree_node_add ///////////////////////////////////
+    pub fn act_tree_node_add(sel: SingleSelection, hist: Rc<OperationHistory>) -> SimpleAction{
+        let act = SimpleAction::new(ACT_TREE_NODE_ADD, Some(&VariantTy::STRING));
+        act.connect_activate(move|_act, val|{
+            let val = val
+                .expect("expect val")
+                .get::<String>()
+                .expect("couldn't get &str val");
+            println!("activated: {}", val);
+        });
+        act
+    }
     // isv2button_to_dest_member ///////////////////////////////
     pub fn isv2button_to_dest_member4(b: &Isv2Button) ->
         Result<TreeManipulationHandle, &'static str> {

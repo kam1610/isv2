@@ -435,6 +435,18 @@ pub fn build_ui(app: &Application) {
     // set menubar /////////////////////////////////////////
     app.set_menubar(Some(&menu));
 
+    ////////////////////////////////////////////////////////
+    // menu tree edit //////////////////////////////////////
+    let menu_tree_edit = Menu::new();
+    menu.append_submenu(Some("Edit"), &menu_tree_edit);
+    // add_tree_node ///////////////////////////////////////
+    let add_tree_node = tree_manipulate::act_tree_node_add(selection_model.clone(),
+                                                           history.clone());
+    window.add_action(&add_tree_node);
+    let menu_add_tree_node_group = MenuItem::new(Some("Add group"),
+                                                 Some( &("win.".to_string() + tree_manipulate::ACT_TREE_NODE_ADD + "('group')") ));
+    menu_tree_edit.append_item(&menu_add_tree_node_group);
+
     // shortcut ////////////////////////////////////////////
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_CLOSE_ALL_PAGE  ), &["<Ctrl>bracketright"]);
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_SELECT_NEXT_PAGE), &["<Ctrl>n"]);

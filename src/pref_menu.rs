@@ -99,7 +99,7 @@ pub mod pref_actions{
             self.param.set_property("target_height", target_height);
             self.param.set_property("export_dir",    export_dir);
 
-            if let Some((sno,_store)) = selection_to_sno(self.selection.clone()) {
+            if let Some((sno,_store)) = selection_to_sno(&self.selection) {
                 self.mediator.emit_by_name::<()>("scene-attribute-changed", &[&sno]);
             }
 

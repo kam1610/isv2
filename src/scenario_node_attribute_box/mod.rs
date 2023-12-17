@@ -1085,7 +1085,7 @@ fn change_item_type(b: ScenarioNodeAttributeBox, s: SingleSelection){
         .orientation(Orientation::Vertical)
         .build();
     let (sno, store) =
-        if let Some((a,b)) = selection_to_sno(s) { (a,b) } else {
+        if let Some((a,b)) = selection_to_sno(&s) { (a,b) } else {
             let label = Label::new(Some("no item is selected"));
             temp_box.append(&label);
             b.append(&temp_box);

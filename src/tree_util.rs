@@ -20,8 +20,18 @@ pub mod tree_manipulate{
     use crate::sno_list::row_to_parent_row;
     use crate::sno_list::row_to_parent_store;
     use crate::operation_history::OperationHistory;
+    use crate::tree_util::tree_manipulate;
+    use crate::scenario_node;
+    use crate::scenario_node::{Scene, Page, Mat, Ovimg};
+    use crate::sno_list::selection_to_sno;
 
-    pub const ACT_TREE_NODE_ADD : &str = "tree_node_add";
+    pub const ACT_TREE_NODE_ADD   : &str = "tree_node_add";
+    pub const ACT_TREE_NODE_GROUP : &str = "group";
+    pub const ACT_TREE_NODE_SCENE : &str = "scene";
+    pub const ACT_TREE_NODE_PAGE  : &str = "page";
+    pub const ACT_TREE_NODE_MAT   : &str = "mat";
+    pub const ACT_TREE_NODE_OVIMG : &str = "ovimg";
+    pub const ACT_TREE_NODE_PMAT  : &str = "pmat";
 
     // act_tree_node_add ///////////////////////////////////
     pub fn act_tree_node_add(sel: SingleSelection, hist: Rc<OperationHistory>) -> SimpleAction{
@@ -31,7 +41,37 @@ pub mod tree_manipulate{
                 .expect("expect val")
                 .get::<String>()
                 .expect("couldn't get &str val");
-            println!("activated: {}", val);
+
+            // prepare new node ////////////////////////////
+            let new_node = ScenarioNodeObject::new_with_seq_id(0, tree_manipulate::gen_id());
+            *new_node.get_node().value.borrow_mut() = {
+                if      val == ACT_TREE_NODE_GROUP { scenario_node::Item::Group }
+                else if val == ACT_TREE_NODE_SCENE { scenario_node::Item::Scene(Scene::default()) }
+                else if val == ACT_TREE_NODE_PAGE  { scenario_node::Item::Page(Page::default()) }
+                else if val == ACT_TREE_NODE_MAT   { scenario_node::Item::Mat(Mat::default()) }
+                else if val == ACT_TREE_NODE_OVIMG { scenario_node::Item::Ovimg(Ovimg::default()) }
+                else if val == ACT_TREE_NODE_PMAT  { scenario_node::Item::Pmat(Mat::default()) }
+                else { println!("(act_tree_node_add) unexpected condition"); return; }
+            };
+            // judge the node can be added to selected position
+            let (sno, _) =
+                if let Some((a,b)) = selection_to_sno(&sel) {
+                    (a,b)
+                } else {
+                    println!("no node is selected");
+                    let n = ScenarioNode::new(); // dummy node to indicate Group when empty list
+                    n.set_value(scenario_node::Item::Group);    // empty list is treated as a group
+                    let sno = ScenarioNodeObject::new_from( Rc::new(n) );
+                    (sno, gio::ListStore::with_type(ScenarioNodeObject::static_type()))
+                };
+            let sno_value = sno.get_node();
+            let sno_value = &*sno_value.value.borrow();
+            if !ScenarioNode::can_be_neighbor_or_child_auto(sno_value,
+                                                            &*new_node.get_node().value.borrow()){
+                return;
+            }
+
+
         });
         act
     }

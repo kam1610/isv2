@@ -444,7 +444,9 @@ pub fn build_ui(app: &Application) {
                                                            history.clone());
     window.add_action(&add_tree_node);
     let menu_add_tree_node_group = MenuItem::new(Some("Add group"),
-                                                 Some( &("win.".to_string() + tree_manipulate::ACT_TREE_NODE_ADD + "('group')") ));
+                                                 Some( &("win.".to_string() +
+                                                         tree_manipulate::ACT_TREE_NODE_ADD +
+                                                         "('" + tree_manipulate::ACT_TREE_NODE_GROUP + "')") ));
     menu_tree_edit.append_item(&menu_add_tree_node_group);
 
     // shortcut ////////////////////////////////////////////
@@ -461,7 +463,7 @@ pub fn build_ui(app: &Application) {
     window.present();
 
     // initial selection state
-    if let Some((_,_)) = selection_to_sno(selection_model.clone()) {
+    if let Some((_,_)) = selection_to_sno(&selection_model) {
         mediator.emit_by_name::<()>("sno-selected", &[&selection_model]);
     }
 

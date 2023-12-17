@@ -104,7 +104,7 @@ pub mod view_actions{
                 param.set_property("bgimg_en", false); }
             else {
                 param.set_property("bgimg_en", true); }
-            if let Some((sno,_store)) = selection_to_sno(selection.clone()) {
+            if let Some((sno,_store)) = selection_to_sno(&selection) {
                 mediator.emit_by_name::<()>("scene-attribute-changed", &[&sno]);
             }
         });

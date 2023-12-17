@@ -23,7 +23,7 @@ impl ScenarioTextView {
     pub fn sno_selected(&self, s: SingleSelection){
         // update view
         let (sno, _store) =
-            if let Some((a,b)) = selection_to_sno(s) { (a,b) } else { return; /* todo: no item */ };
+            if let Some((a,b)) = selection_to_sno(&s) { (a,b) } else { return; /* todo: no item */ };
         // set sno
         *self.imp().sno.borrow_mut() = Some( sno.clone() );
 

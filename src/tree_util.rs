@@ -54,7 +54,7 @@ pub mod tree_manipulate{
                 else { println!("(act_tree_node_add) unexpected condition"); return; }
             };
             // judge the node can be added to selected position
-            let (sno, _) =
+            let (sno, store) =
                 if let Some((a,b)) = selection_to_sno(&sel) {
                     (a,b)
                 } else {
@@ -70,6 +70,168 @@ pub mod tree_manipulate{
                                                             &*new_node.get_node().value.borrow()){
                 return;
             }
+            // confirm empty list
+            if sel.selected_item().is_none() {
+                let h= OperationHistoryItem::new_with_root_store(Operation::AddRoot,
+                                                                 &store,
+                                                                 &new_node);
+                hist.push(h);
+                tree_manipulate::add_node_to_empty_store(add_node_button.button.clone(),
+                                                         &new_node);
+                return;
+            }
+
+            let obj     = btn.get_selection().selected_item().unwrap();
+            let sel_row = obj.downcast_ref::<TreeListRow>().expect("TreeListRow is expected");
+            let sel_sno = sel_row.item().and_downcast::<ScenarioNodeObject>().expect("sno is expd");
+
+            /*
+            let ope_type;
+            // sel_belong_row //////////////////////////////////
+            fn sel_belong_row(sel_sno: &ScenarioNodeObject,
+                              btn    : &Isv2Button,
+                              belong_func: &dyn Fn(&Rc<ScenarioNode>)->Option<Rc<ScenarioNode>> ) -> Result<(),()>{
+                let target_s = {
+                    if let Some(s) = belong_func(&sel_sno.get_node()) {s}
+                    else {
+                        println!("(AddNodeButton)unexpected condition {}:{}", file!(), line!());
+                        return Err(()); }};
+                let (_s, n) = tree_manipulate::search_row_with_sn_up_in_ssel(&*btn.get_selection(),
+                                                                             target_s,
+                                                                             btn.get_selection().selected());
+                btn.get_selection().set_selected(n); // selection is updated tempolary to create history handle
+                Ok(())
+            }
+
+            ////////////////////////////////////////////////////
+            // ope-sel conditions //////////////////////////////
+            match add_node_button.node_type { // ope
+                // ope:grp /////////////////////////////////////
+                scenario_node::Item::Group => {
+                    match *sel_sno.get_node().value.borrow() { // sel
+                        scenario_node::Item::Group |
+                        scenario_node::Item::Scene(_) => { // ope:grp, sel:grp,scn
+                            ope_type = Operation::AddNeighbor;
+                        },
+                        scenario_node::Item::Page(_) |
+                        scenario_node::Item::Pmat(_) |
+                        scenario_node::Item::Mat(_)  |
+                        scenario_node::Item::Ovimg(_) => { // ope:grp, sel:pg,pmt,mt,ovi
+                            if let Ok(_) = sel_belong_row(&sel_sno, &btn, &ScenarioNode::get_belong_scene) {
+                                ope_type = Operation::AddNeighbor; }
+                            else {
+                                return; }
+                        },
+                    };
+                },
+                // ope:scn /////////////////////////////////////
+                scenario_node::Item::Scene(_) => {
+                    match *sel_sno.get_node().value.borrow() { // sel
+                        scenario_node::Item::Group => { // ope:scn, sel:grp
+                            ope_type = Operation::AddChild;
+                        },
+                        scenario_node::Item::Scene(_) => { // ope:scn, sel:scn
+                            ope_type = Operation::AddNeighbor;
+                        },
+                        scenario_node::Item::Page(_) |
+                        scenario_node::Item::Pmat(_) |
+                        scenario_node::Item::Mat(_)  |
+                        scenario_node::Item::Ovimg(_) => { // ope:scn, sel:pg,pmt,mt,ovi
+                            let target_s = {
+                                if let Some(s) = ScenarioNode::get_belong_scene(&sel_sno.get_node()) {s}
+                                else {
+                                    println!("(AddNodeButton)unexpected condition {}:{}", file!(), line!());
+                                    return; }};
+                            let (_s, n) = tree_manipulate::search_row_with_sn_up_in_ssel(&*btn.get_selection(),
+                                                                                         target_s,
+                                                                                         btn.get_selection().selected());
+                            btn.get_selection().set_selected(n);
+                            ope_type = Operation::AddNeighbor;
+                        },
+                    };
+                },
+                // ope:pg,pm ///////////////////////////////////
+                scenario_node::Item::Page(_) |
+                scenario_node::Item::Pmat(_) => {
+                    match *sel_sno.get_node().value.borrow() { // sel
+                        scenario_node::Item::Group => {
+                            return;
+                        },
+                        scenario_node::Item::Scene(_) => {
+                            ope_type = Operation::AddChild;
+                        },
+                        scenario_node::Item::Page(_) |
+                        scenario_node::Item::Pmat(_) => {
+                            ope_type = Operation::AddNeighbor;
+                        },
+                        scenario_node::Item::Mat(_) |
+                        scenario_node::Item::Ovimg(_) => {
+                            if let Ok(_) = sel_belong_row(&sel_sno, &btn, &ScenarioNode::get_belong_page) {
+                                ope_type = Operation::AddNeighbor; }
+                            else {
+                                return; }
+                        },
+                    };
+                },
+                // ope:mat,ovi /////////////////////////////////
+                scenario_node::Item::Mat(_) |
+                scenario_node::Item::Ovimg(_) => {
+                    match *sel_sno.get_node().value.borrow() { // sel
+                        scenario_node::Item::Group |
+                        scenario_node::Item::Scene(_) => {
+                            return;
+                        },
+                        scenario_node::Item::Page(_) => {
+                            ope_type = Operation::AddChild;
+                        },
+                        scenario_node::Item::Pmat(_) => {
+                            return;
+                        },
+                        scenario_node::Item::Mat(_) |
+                        scenario_node::Item::Ovimg(_) => {
+                            ope_type = Operation::AddNeighbor;
+                        },
+                    };
+                },
+            };
+
+            // select kind of addition(child or neighbor_ //////
+            let add_child_func = std::boxed::Box::new( |h: &TreeManipulationHandle, n: &ScenarioNodeObject|{
+                add_child( h.sno.as_ref().unwrap().as_ref(),
+                           n,
+                           h.row.as_ref().unwrap().as_ref(),
+                           h.store.as_ref().unwrap().as_ref()); } );
+            let add_neighbor_func = std::boxed::Box::new( |h: &TreeManipulationHandle, n: &ScenarioNodeObject|{
+                add_neighbor( h.sno.as_ref().unwrap().as_ref(),
+                              n,
+                              h.store.as_ref().unwrap().as_ref()); });
+            let add_func : std::boxed::Box<dyn Fn(&TreeManipulationHandle, &ScenarioNodeObject)>;
+
+            if ope_type == Operation::AddChild {
+                add_func = add_child_func; }
+            else {
+                add_func = add_neighbor_func; }
+
+            if let Ok(hdl) = tree_manipulate::isv2button_to_dest_member4(&btn){
+                add_func(&hdl, &new_node);
+
+                let mut h= OperationHistoryItem::new_from_handle(ope_type, hdl); // error! must chose AddNeighbor or AddChild
+                h.new_sno= Some( Rc::new(new_node.clone()) );
+
+                add_node_button.button.get_history().push(h);
+
+                // update selection to select added node
+                let (s, n) = tree_manipulate::search_row_with_sn_down_in_ssel(&*btn.get_selection(),
+                                                                              new_node.get_node().clone(),
+                                                                              btn.get_selection().selected());
+                if s.is_some() { btn.get_selection().set_selected(n); }
+            } else {
+                println!("(add_node_button) unexpected condition!");
+            }
+            */
+
+
+
 
 
         });

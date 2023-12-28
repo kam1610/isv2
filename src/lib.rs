@@ -443,6 +443,7 @@ pub fn build_ui(app: &Application) {
     let add_tree_node = tree_manipulate::act_tree_node_add(selection_model.clone(),
                                                            history.clone());
     window.add_action(&add_tree_node);
+    // group
     let menu_add_tree_node_group = MenuItem::new(Some("Add group"),
                                                  Some( &("win.".to_string() +
                                                          tree_manipulate::ACT_TREE_NODE_ADD +
@@ -454,6 +455,9 @@ pub fn build_ui(app: &Application) {
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_SELECT_NEXT_PAGE), &["<Ctrl>n"]);
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_SELECT_PREV_PAGE), &["<Ctrl>p"]);
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_TOGGLE_BGIMG),     &["<Ctrl>b"]);
+
+    app.set_accels_for_action(&("win.".to_string() + tree_manipulate::ACT_TREE_NODE_ADD +
+                                "('" + tree_manipulate::ACT_TREE_NODE_GROUP + "')"), &["<Ctrl><Shift>g"]);
 
     // set attribute box after root is associated
     attribute_box.update_item_type(selection_model.clone());

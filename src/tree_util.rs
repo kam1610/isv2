@@ -13,17 +13,21 @@ pub mod tree_manipulate{
     use gtk::prelude::*;
 
     use crate::isv2_button::Isv2Button;
+    use crate::operation_history::Operation;
+    use crate::operation_history::OperationHistory;
+    use crate::operation_history::OperationHistoryItem;
     use crate::operation_history::TreeManipulationHandle;
     use crate::scenario_node::ScenarioNode;
+    use crate::scenario_node::{Scene, Page, Mat, Ovimg};
+    use crate::scenario_node;
     use crate::scenario_node_object::ScenarioNodeObject;
+    use crate::scenario_node_object::add_child;
+    use crate::scenario_node_object::add_neighbor;
     use crate::sno_list::get_parent_sno;
     use crate::sno_list::row_to_parent_row;
     use crate::sno_list::row_to_parent_store;
-    use crate::operation_history::OperationHistory;
-    use crate::tree_util::tree_manipulate;
-    use crate::scenario_node;
-    use crate::scenario_node::{Scene, Page, Mat, Ovimg};
     use crate::sno_list::selection_to_sno;
+    use crate::tree_util::tree_manipulate;
 
     pub const ACT_TREE_NODE_ADD   : &str = "tree_node_add";
     pub const ACT_TREE_NODE_GROUP : &str = "group";
@@ -76,36 +80,34 @@ pub mod tree_manipulate{
                                                                  &store,
                                                                  &new_node);
                 hist.push(h);
-                tree_manipulate::add_node_to_empty_store(add_node_button.button.clone(),
-                                                         &new_node);
+                sel.model().unwrap().downcast::<gio::ListStore>().expect("ListStore").insert(0, &new_node);
                 return;
             }
 
-            let obj     = btn.get_selection().selected_item().unwrap();
+            let obj     = sel.selected_item().unwrap();
             let sel_row = obj.downcast_ref::<TreeListRow>().expect("TreeListRow is expected");
             let sel_sno = sel_row.item().and_downcast::<ScenarioNodeObject>().expect("sno is expd");
 
-            /*
             let ope_type;
             // sel_belong_row //////////////////////////////////
-            fn sel_belong_row(sel_sno: &ScenarioNodeObject,
-                              btn    : &Isv2Button,
+            fn sel_belong_row(sel_sno    : &ScenarioNodeObject,
+                              sel        : &SingleSelection,
                               belong_func: &dyn Fn(&Rc<ScenarioNode>)->Option<Rc<ScenarioNode>> ) -> Result<(),()>{
                 let target_s = {
                     if let Some(s) = belong_func(&sel_sno.get_node()) {s}
                     else {
                         println!("(AddNodeButton)unexpected condition {}:{}", file!(), line!());
                         return Err(()); }};
-                let (_s, n) = tree_manipulate::search_row_with_sn_up_in_ssel(&*btn.get_selection(),
+                let (_s, n) = tree_manipulate::search_row_with_sn_up_in_ssel(&sel,
                                                                              target_s,
-                                                                             btn.get_selection().selected());
-                btn.get_selection().set_selected(n); // selection is updated tempolary to create history handle
+                                                                             sel.selected());
+                sel.set_selected(n); // selection is updated tempolary to create history handle
                 Ok(())
             }
 
             ////////////////////////////////////////////////////
             // ope-sel conditions //////////////////////////////
-            match add_node_button.node_type { // ope
+            match *new_node.get_node().value.borrow() { // ope
                 // ope:grp /////////////////////////////////////
                 scenario_node::Item::Group => {
                     match *sel_sno.get_node().value.borrow() { // sel
@@ -117,7 +119,7 @@ pub mod tree_manipulate{
                         scenario_node::Item::Pmat(_) |
                         scenario_node::Item::Mat(_)  |
                         scenario_node::Item::Ovimg(_) => { // ope:grp, sel:pg,pmt,mt,ovi
-                            if let Ok(_) = sel_belong_row(&sel_sno, &btn, &ScenarioNode::get_belong_scene) {
+                            if let Ok(_) = sel_belong_row(&sel_sno, &sel, &ScenarioNode::get_belong_scene) {
                                 ope_type = Operation::AddNeighbor; }
                             else {
                                 return; }
@@ -142,10 +144,10 @@ pub mod tree_manipulate{
                                 else {
                                     println!("(AddNodeButton)unexpected condition {}:{}", file!(), line!());
                                     return; }};
-                            let (_s, n) = tree_manipulate::search_row_with_sn_up_in_ssel(&*btn.get_selection(),
+                            let (_s, n) = tree_manipulate::search_row_with_sn_up_in_ssel(&sel,
                                                                                          target_s,
-                                                                                         btn.get_selection().selected());
-                            btn.get_selection().set_selected(n);
+                                                                                         sel.selected());
+                            sel.set_selected(n);
                             ope_type = Operation::AddNeighbor;
                         },
                     };
@@ -166,7 +168,7 @@ pub mod tree_manipulate{
                         },
                         scenario_node::Item::Mat(_) |
                         scenario_node::Item::Ovimg(_) => {
-                            if let Ok(_) = sel_belong_row(&sel_sno, &btn, &ScenarioNode::get_belong_page) {
+                            if let Ok(_) = sel_belong_row(&sel_sno, &sel, &ScenarioNode::get_belong_page) {
                                 ope_type = Operation::AddNeighbor; }
                             else {
                                 return; }
@@ -212,45 +214,39 @@ pub mod tree_manipulate{
             else {
                 add_func = add_neighbor_func; }
 
-            if let Ok(hdl) = tree_manipulate::isv2button_to_dest_member4(&btn){
+            if let Ok(hdl) = singleselection_to_dest_member(&sel){
                 add_func(&hdl, &new_node);
 
                 let mut h= OperationHistoryItem::new_from_handle(ope_type, hdl); // error! must chose AddNeighbor or AddChild
                 h.new_sno= Some( Rc::new(new_node.clone()) );
 
-                add_node_button.button.get_history().push(h);
+                hist.push(h);
 
                 // update selection to select added node
-                let (s, n) = tree_manipulate::search_row_with_sn_down_in_ssel(&*btn.get_selection(),
+                let (s, n) = tree_manipulate::search_row_with_sn_down_in_ssel(&sel,
                                                                               new_node.get_node().clone(),
-                                                                              btn.get_selection().selected());
-                if s.is_some() { btn.get_selection().set_selected(n); }
+                                                                              sel.selected());
+                if s.is_some() { sel.set_selected(n); }
             } else {
                 println!("(add_node_button) unexpected condition!");
             }
-            */
-
-
-
-
-
         });
+
         act
     }
-    // isv2button_to_dest_member ///////////////////////////////
-    pub fn isv2button_to_dest_member4(b: &Isv2Button) ->
+    // singleselectino_to_dest_member ///////////////////////////////
+    pub fn singleselection_to_dest_member(sel: &SingleSelection) ->
         Result<TreeManipulationHandle, &'static str> {
 
-            if b.get_selection().selected_item().is_none() {
+            if sel.selected_item().is_none() {
                 return Err("not selected"); }
 
-            let root_store= b.get_selection() // selection is a member of Isv2Button
-                .model().unwrap() // TreeListModel
+            let root_store= sel.model().unwrap() // TreeListModel
                 .downcast::<TreeListModel>().expect("TreeListModel")
                 .model()          // ListModel
                 .downcast::<gio::ListStore>().expect("ListStore");
 
-            let obj               = b.get_selection().selected_item().unwrap();
+            let obj               = sel.selected_item().unwrap();
             let dest_row          = obj.downcast_ref::<TreeListRow>().expect("TreeListRow is expected");
             let dest_sno          = dest_row.item().and_downcast::<ScenarioNodeObject>().expect("sno is expd");
             let dest_store        = row_to_parent_store(dest_row, &root_store);
@@ -271,6 +267,11 @@ pub mod tree_manipulate{
                 parent_store : Some(dest_parent_store.into()),
             };
             Ok( hdl )
+        }
+    // isv2button_to_dest_member ///////////////////////////////
+    pub fn isv2button_to_dest_member4(b: &Isv2Button) ->
+        Result<TreeManipulationHandle, &'static str> {
+            singleselection_to_dest_member( &b.get_selection() )
         }
     // search_sn_upward ////////////////////////////////////////
     pub fn search_row_with_sn_up_in_ssel(single_selection : &SingleSelection,

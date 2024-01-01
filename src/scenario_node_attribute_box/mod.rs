@@ -811,8 +811,9 @@ impl Isv2CropWindow {
         gesture_ctrl
     }
     // build ///////////////////////////////////////////////
-    pub fn build(editor : Rc<Isv2CropEditor>,
-                 sno    : ScenarioNodeObject) -> Rc<Self>{
+    pub fn build(editor    : Rc<Isv2CropEditor>,
+                 sno       : ScenarioNodeObject,
+                 parameter : Isv2Parameter) -> Rc<Self>{
         let obj = Rc::new(Self{
             editor         : Rc::downgrade(&editor),
             win            : Window::builder().title( String::from("crop") ).modal(true).build(),
@@ -858,8 +859,10 @@ impl Isv2CropWindow {
         obj.button_box.append(&obj.ok_button);
         obj.button_box.append(&obj.cancel_button);
 
+        let mut prj_path = parameter.property::<PathBuf>("project_dir");
         if let Some(bgimg_path) = sno.get_node().get_scene_bgimg(){
-            if let Ok(p) = Pixbuf::from_file( bgimg_path ){ // &path
+            prj_path.push(&bgimg_path);
+            if let Ok(p) = Pixbuf::from_file( prj_path ){
                 *obj.pbuf.borrow_mut() = Some(p); }
             else {
                 *obj.pbuf.borrow_mut() = None; }
@@ -908,7 +911,8 @@ struct Isv2CropEditor{
 impl Isv2CropEditor {
     // build ///////////////////////////////////////////////
     pub fn build(mediator : WeakRef<Object>,
-                 sno      : ScenarioNodeObject) -> Rc<Isv2CropEditor>{
+                 sno      : ScenarioNodeObject,
+                 parameter: Isv2Parameter) -> Rc<Isv2CropEditor>{
 
         let (x, y, w, h, _en) = sno.get_node().get_scene_crop_pos_dim().unwrap();
         let crop_str = format!("{},{},{},{}", x, y, w, h);
@@ -948,7 +952,7 @@ impl Isv2CropEditor {
         obj.crop_box.append(&obj.crop_button);
 
         obj.crop_button.connect_clicked( clone!(@strong obj => move |_b| {
-            Isv2CropWindow::build(obj.clone(), sno.clone());
+            Isv2CropWindow::build(obj.clone(), sno.clone(), parameter.clone());
         }));
 
         obj
@@ -1015,7 +1019,8 @@ fn build_scene_attribute_box(sno      : ScenarioNodeObject,
                                                     |s, c| { s.get_node().set_scene_bg_rgba(c) } ));
     // crop editor /////////////////////////////////////////
     let crop_editor = Isv2CropEditor::build( mediator.clone(),
-                                             sno.clone() );
+                                             sno.clone(),
+                                             parameter.clone());
     // label ///////////////////////////////////////////////
     let gray_list = vec![bgimg_box.file_dialog_label.upcast_ref::<Widget>().clone(),
                          bgimg_box.file_dialog_entry.upcast_ref::<Widget>().clone(),

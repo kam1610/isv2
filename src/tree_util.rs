@@ -30,12 +30,12 @@ pub mod tree_manipulate{
     use crate::tree_util::tree_manipulate;
 
     pub const ACT_TREE_NODE_ADD   : &str = "tree_node_add";
-    pub const ACT_TREE_NODE_GROUP : &str = "group";
-    pub const ACT_TREE_NODE_SCENE : &str = "scene";
-    pub const ACT_TREE_NODE_PAGE  : &str = "page";
-    pub const ACT_TREE_NODE_MAT   : &str = "mat";
-    pub const ACT_TREE_NODE_OVIMG : &str = "ovimg";
-    pub const ACT_TREE_NODE_PMAT  : &str = "pmat";
+    pub const ACT_TREE_NODE_GROUP : &str = "add__group";
+    pub const ACT_TREE_NODE_SCENE : &str = "add__scene";
+    pub const ACT_TREE_NODE_PAGE  : &str = "add__page";
+    pub const ACT_TREE_NODE_MAT   : &str = "add__mat";
+    pub const ACT_TREE_NODE_OVIMG : &str = "add__ovimg";
+    pub const ACT_TREE_NODE_PMAT  : &str = "add__pmat";
 
     // act_tree_node_add ///////////////////////////////////
     pub fn act_tree_node_add(sel: SingleSelection, hist: Rc<OperationHistory>) -> SimpleAction{
@@ -298,10 +298,6 @@ pub mod tree_manipulate{
             if (from_n as i32) == ((single_selection.n_items() as i32) - 1) { return (None, from_n); }
             from_n += 1;
         }
-    }
-    // add_node_to_empty_store /////////////////////////////
-    pub fn add_node_to_empty_store(a: Isv2Button, sno: &ScenarioNodeObject) {
-        a.get_store().insert( 0, sno );
     }
     // gen_id /////////////////////////////////////////////////
     pub fn gen_id() -> i32 {

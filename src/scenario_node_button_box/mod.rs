@@ -31,7 +31,7 @@ impl ScenarioNodeButtonBox{
     fn sno_selected(snbbox: ScenarioNodeButtonBox, s: SingleSelection){
         //let snbbox = w.downcast_ref::<ScenarioNodeButtonBox>().unwrap();
         let (sno, _) =
-            if let Some((a,b)) = selection_to_sno(s) {
+            if let Some((a,b)) = selection_to_sno(&s) {
                 (a,b)
             } else {
                 println!("no node is selected");

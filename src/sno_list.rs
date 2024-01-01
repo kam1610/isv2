@@ -40,7 +40,7 @@ use crate::scenario_node_object::ScenarioNodeObject;
 use crate::scenario_node_object::adj_seq;
 
 // selection_to_sno ////////////////////////////////////////
-pub fn selection_to_sno(s: SingleSelection) -> Option<(ScenarioNodeObject, gio::ListStore)> {
+pub fn selection_to_sno(s: &SingleSelection) -> Option<(ScenarioNodeObject, gio::ListStore)> {
     let obj = if let Some(i) = s.selected_item() { i } else { return None; };
     let row = obj.downcast_ref::<TreeListRow>().expect("TreeListRow is expected");
     let sno = row.item().and_downcast::<ScenarioNodeObject>().expect("sno is expd");

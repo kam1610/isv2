@@ -435,6 +435,37 @@ pub fn build_ui(app: &Application) {
     // set menubar /////////////////////////////////////////
     app.set_menubar(Some(&menu));
 
+    ////////////////////////////////////////////////////////
+    // menu tree edit //////////////////////////////////////
+    let menu_tree_edit = Menu::new();
+    menu.append_submenu(Some("Edit"), &menu_tree_edit);
+    // add_tree_node ///////////////////////////////////////
+    let add_tree_node = tree_manipulate::act_tree_node_add(selection_model.clone(),
+                                                           history.clone());
+    window.add_action(&add_tree_node);
+    {
+        let node_acts = vec![ (tree_manipulate::ACT_TREE_NODE_GROUP, "g"),
+                              (tree_manipulate::ACT_TREE_NODE_SCENE, "s"),
+                              (tree_manipulate::ACT_TREE_NODE_PAGE,  "p"),
+                              (tree_manipulate::ACT_TREE_NODE_MAT,   "m"),
+                              (tree_manipulate::ACT_TREE_NODE_OVIMG, "i"),
+                              (tree_manipulate::ACT_TREE_NODE_PMAT,  "t") ];
+        let _ = node_acts.iter()
+            .map(|act| {
+                let menu_add_tree_node_type = MenuItem::new(Some(act.0),
+                                                            Some( &("win.".to_string() +
+                                                                    tree_manipulate::ACT_TREE_NODE_ADD +
+                                                                    "('" + act.0 + "')") ));
+                menu_tree_edit.append_item(&menu_add_tree_node_type);
+
+                // assign shortcut keys
+                app.set_accels_for_action(&("win.".to_string() + tree_manipulate::ACT_TREE_NODE_ADD +
+                                            "('" + act.0 + "')"),
+                                          &[&("<Ctrl><Shift>".to_string() + act.1)]);
+
+            }).collect::<Vec<_>>();
+    }
+
     // shortcut ////////////////////////////////////////////
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_CLOSE_ALL_PAGE  ), &["<Ctrl>bracketright"]);
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_SELECT_NEXT_PAGE), &["<Ctrl>n"]);
@@ -449,7 +480,7 @@ pub fn build_ui(app: &Application) {
     window.present();
 
     // initial selection state
-    if let Some((_,_)) = selection_to_sno(selection_model.clone()) {
+    if let Some((_,_)) = selection_to_sno(&selection_model) {
         mediator.emit_by_name::<()>("sno-selected", &[&selection_model]);
     }
 

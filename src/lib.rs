@@ -28,10 +28,12 @@ use gtk::CssProvider;
 use gtk::DropTarget;
 use gtk::ListItem;
 use gtk::ListView;
+use gtk::MovementStep;
 use gtk::Orientation;
 use gtk::Paned;
 use gtk::PolicyType;
 use gtk::ScrolledWindow;
+use gtk::gio::SimpleAction;
 use gtk::SingleSelection;
 use gtk::TreeListModel;
 use gtk::gdk::Display;
@@ -43,6 +45,7 @@ use gtk::gio;
 use gtk::glib::object::Object;
 use gtk::glib;
 use gtk::prelude::*;
+use gtk::glib::clone;
 
 use crate::file_menu::actions;
 use crate::isv2_button::Isv2Button;
@@ -466,11 +469,27 @@ pub fn build_ui(app: &Application) {
             }).collect::<Vec<_>>();
     }
 
+    ////////////////////////////////////////////////////////
+    // menu text view //////////////////////////////////////
+    let menu_text_view = Menu::new();
+    menu.append_submenu(Some("TextView"), &menu_text_view);
+    // text view commands //////////////////////////////////
+    let act_text_forward_char = SimpleAction::new("text_forward_char", None);
+    act_text_forward_char.connect_activate(clone!(@strong text_view => move|_act, _val|{
+        text_view.emit_move_cursor(MovementStep::VisualPositions, 1, false);
+    }));
+    window.add_action(&act_text_forward_char);
+
+    let menu_text_forward_char = MenuItem::new(Some("forward__char"), Some("win.text_forward_char"));
+    menu_text_view.append_item(&menu_text_forward_char);
+
     // shortcut ////////////////////////////////////////////
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_CLOSE_ALL_PAGE  ), &["<Ctrl>bracketright"]);
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_SELECT_NEXT_PAGE), &["<Ctrl>n"]);
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_SELECT_PREV_PAGE), &["<Ctrl>p"]);
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_TOGGLE_BGIMG),     &["<Ctrl>b"]);
+
+    app.set_accels_for_action("win.text_forward_char", &["<Alt>semicolon"]);
 
     // set attribute box after root is associated
     attribute_box.update_item_type(selection_model.clone());

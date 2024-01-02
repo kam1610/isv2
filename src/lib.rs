@@ -506,7 +506,7 @@ pub fn build_ui(app: &Application) {
                                           &[act.2]);
             }).collect::<Vec<_>>();
     }
-    // text edit commaonds /////////////////////////////////
+    // text delete commands /////////////////////////////////
     let text_delete_action = text_edit::act_delete_text(window.clone());
     window.add_action(&text_delete_action);
     {
@@ -526,6 +526,28 @@ pub fn build_ui(app: &Application) {
                 menu_text_edit.append_item(&menu_text_delete_act);
                 // assign shortcut key
                 app.set_accels_for_action(&("win.".to_string() + text_edit::ACT_DEL_TEXT +
+                                            "(" + &(act.1 as i32).to_string() + ")"),
+                                          &[act.2]);
+            }).collect::<Vec<_>>();
+
+    }
+    // text insert commands ////////////////////////////////
+    let text_insert_action = text_edit::act_insert_text(window.clone());
+    window.add_action(&text_insert_action);
+    {
+        let text_insert_acts =
+            vec![("new line",  text_edit::ActInsTextCmd::NewLine,  "<Ctrl>m"),
+                 ("open line", text_edit::ActInsTextCmd::OpenLine, "<Ctrl>o"),];
+        let _ = text_insert_acts.iter()
+            .map(|act|{
+                let menu_text_insert_act =
+                    MenuItem::new(Some(act.0),
+                                  Some(&("win.".to_string() +
+                                  text_edit::ACT_INS_TEXT +
+                                  "(" + &(act.1 as i32).to_string() + ")")));
+                menu_text_edit.append_item(&menu_text_insert_act);
+                // assign shortcut key
+                app.set_accels_for_action(&("win.".to_string() + text_edit::ACT_INS_TEXT +
                                             "(" + &(act.1 as i32).to_string() + ")"),
                                           &[act.2]);
             }).collect::<Vec<_>>();

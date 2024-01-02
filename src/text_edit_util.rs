@@ -8,7 +8,6 @@ pub mod text_edit{
     use gtk::prelude::*;
 
     pub const ACT_CURSOR_MOVE : &str = "move_cursor";
-
     #[derive(Debug, Clone, Copy)]
     pub enum ActCursorCmd {
         FwdChar,    BackChar,
@@ -19,12 +18,17 @@ pub mod text_edit{
     }
 
     pub const ACT_DEL_TEXT : &str = "del_text";
-
     #[derive(Debug, Clone, Copy)]
     pub enum ActDelTextCmd {
         DelBackChar,  DelChar,
         KillLine,
         BackKillWord, KillWord,
+    }
+
+    pub const ACT_INS_TEXT : &str = "ins_text";
+    #[derive(Debug, Clone, Copy)]
+    pub enum ActInsTextCmd {
+        NewLine, OpenLine
     }
 
     // act_cursor_move /////////////////////////////////////
@@ -68,6 +72,7 @@ pub mod text_edit{
                 x if x == ActDelTextCmd::DelChar      as i32 => {(DeleteType::Chars,  1)},
                 x if x == ActDelTextCmd::KillLine     as i32 => {
                     // workaround
+                    // TODO: remove the line(=Delete one char) when the line has empty
                     if let Some(view) = current_focus.downcast_ref::<TextView>(){
                         view.emit_move_cursor(MovementStep::DisplayLineEnds, 1, true);
                         view.emit_delete_from_cursor(DeleteType::DisplayLineEnds, 1);
@@ -83,6 +88,30 @@ pub mod text_edit{
                 view.emit_delete_from_cursor(val.0, val.1);
             } else if let Some(text) = current_focus.downcast_ref::<gtk::Text>(){
                 text.emit_delete_from_cursor(val.0, val.1);
+            }
+        });
+        act
+    }
+    // act_insert_text /////////////////////////////////////
+    pub fn act_insert_text(win: ApplicationWindow) -> SimpleAction{
+        let act = SimpleAction::new(ACT_INS_TEXT, Some(&VariantTy::INT32));
+        act.connect_activate(move|_act, val|{
+            let current_focus =
+                if let Some(f) = GtkWindowExt::focus(&win) {f} else {return;};
+            let view =
+                if let Some(v) = current_focus.downcast_ref::<TextView>() {v} else {return;};
+            let val = val.expect("expect val").get::<i32>().expect("couldn't get i32 val");
+
+            match val{
+                x if x == ActInsTextCmd::NewLine as i32 => {
+                    view.emit_insert_at_cursor("\n");
+                },
+                x if x == ActInsTextCmd::OpenLine as i32 =>{
+                    view.emit_insert_at_cursor("\n");
+                    view.emit_move_cursor(MovementStep::DisplayLines, -1, false);
+                    view.emit_move_cursor(MovementStep::DisplayLineEnds, 1, false);
+                },
+                _ => { println!("(act_insert_text) unexpected val: {}", val); }
             }
         });
         act

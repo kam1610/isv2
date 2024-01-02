@@ -16,6 +16,7 @@ mod sno_list;
 mod tree_util;
 mod view_menu;
 mod status_bar;
+mod text_edit_util;
 
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -28,12 +29,10 @@ use gtk::CssProvider;
 use gtk::DropTarget;
 use gtk::ListItem;
 use gtk::ListView;
-use gtk::MovementStep;
 use gtk::Orientation;
 use gtk::Paned;
 use gtk::PolicyType;
 use gtk::ScrolledWindow;
-use gtk::gio::SimpleAction;
 use gtk::SingleSelection;
 use gtk::TreeListModel;
 use gtk::gdk::Display;
@@ -45,7 +44,6 @@ use gtk::gio;
 use gtk::glib::object::Object;
 use gtk::glib;
 use gtk::prelude::*;
-use gtk::glib::clone;
 
 use crate::file_menu::actions;
 use crate::isv2_button::Isv2Button;
@@ -71,6 +69,7 @@ use crate::sno_list::selection_to_sno;
 use crate::tree_util::tree_manipulate;
 use crate::view_menu::view_actions;
 use crate::status_bar::StatusBar;
+use crate::text_edit_util::text_edit;
 
 // load_css ////////////////////////////////////////////////
 pub fn load_css() {
@@ -447,12 +446,12 @@ pub fn build_ui(app: &Application) {
                                                            history.clone());
     window.add_action(&add_tree_node);
     {
-        let node_acts = vec![ (tree_manipulate::ACT_TREE_NODE_GROUP, "g"),
-                              (tree_manipulate::ACT_TREE_NODE_SCENE, "s"),
-                              (tree_manipulate::ACT_TREE_NODE_PAGE,  "p"),
-                              (tree_manipulate::ACT_TREE_NODE_MAT,   "m"),
-                              (tree_manipulate::ACT_TREE_NODE_OVIMG, "i"),
-                              (tree_manipulate::ACT_TREE_NODE_PMAT,  "t") ];
+        let node_acts = vec![ (tree_manipulate::ACT_TREE_NODE_GROUP, "<Ctrl><Shift>g"),
+                              (tree_manipulate::ACT_TREE_NODE_SCENE, "<Ctrl><Shift>s"),
+                              (tree_manipulate::ACT_TREE_NODE_PAGE,  "<Ctrl><Shift>p"),
+                              (tree_manipulate::ACT_TREE_NODE_MAT,   "<Ctrl><Shift>m"),
+                              (tree_manipulate::ACT_TREE_NODE_OVIMG, "<Ctrl><Shift>i"),
+                              (tree_manipulate::ACT_TREE_NODE_PMAT,  "<Ctrl><Shift>t") ];
         let _ = node_acts.iter()
             .map(|act| {
                 let menu_add_tree_node_type = MenuItem::new(Some(act.0),
@@ -460,28 +459,47 @@ pub fn build_ui(app: &Application) {
                                                                     tree_manipulate::ACT_TREE_NODE_ADD +
                                                                     "('" + act.0 + "')") ));
                 menu_tree_edit.append_item(&menu_add_tree_node_type);
-
-                // assign shortcut keys
+                // assign shortcut key
                 app.set_accels_for_action(&("win.".to_string() + tree_manipulate::ACT_TREE_NODE_ADD +
                                             "('" + act.0 + "')"),
-                                          &[&("<Ctrl><Shift>".to_string() + act.1)]);
+                                          &[&act.1]);
 
             }).collect::<Vec<_>>();
     }
 
     ////////////////////////////////////////////////////////
-    // menu text view //////////////////////////////////////
-    let menu_text_view = Menu::new();
-    menu.append_submenu(Some("TextView"), &menu_text_view);
+    // menu text edit //////////////////////////////////////
+    let menu_text_edit = Menu::new();
+    menu.append_submenu(Some("TextView"), &menu_text_edit);
     // text view commands //////////////////////////////////
-    let act_text_forward_char = SimpleAction::new("text_forward_char", None);
-    act_text_forward_char.connect_activate(clone!(@strong text_view => move|_act, _val|{
-        text_view.emit_move_cursor(MovementStep::VisualPositions, 1, false);
-    }));
-    window.add_action(&act_text_forward_char);
+    let text_move_cursor = text_edit::act_cursor_move(window.clone());
+    window.add_action(&text_move_cursor);
+    {
+        let cursor_acts = vec![("forward char",   text_edit::ActCursorCmd::FwdChar,   "<Alt>semicolon"),
+                               ("backward char",  text_edit::ActCursorCmd::BackChar,  "<Alt>J"),
+                               ("forward word",   text_edit::ActCursorCmd::FwdWord  , "<Alt>o"),
+                               ("backword word",  text_edit::ActCursorCmd::BackWord , "<Alt>i"),
+                               ("next line",      text_edit::ActCursorCmd::NextLine , "<Alt>k"),
+                               ("prev line",      text_edit::ActCursorCmd::PrevLine , "<Alt>l"),
+                               ("next line 3",    text_edit::ActCursorCmd::NextLine3, "<Alt>9"),
+                               ("prev line 3",    text_edit::ActCursorCmd::PrevLine3, "<Alt>0"),
+                               ("beginning line", text_edit::ActCursorCmd::BegLine  , "<Ctrl>a"),
+                               ("end line",       text_edit::ActCursorCmd::EndLine  , "<Ctrl>e"),
 
-    let menu_text_forward_char = MenuItem::new(Some("forward__char"), Some("win.text_forward_char"));
-    menu_text_view.append_item(&menu_text_forward_char);
+        ];
+        let _ = cursor_acts.iter()
+            .map(|act|{
+                let menu_cursor_act = MenuItem::new(Some(act.0),
+                                                    Some(&("win.".to_string() +
+                                                           text_edit::ACT_CURSOR_MOVE +
+                                                           "(" + &(act.1 as i32).to_string() + ")")));
+                menu_text_edit.append_item(&menu_cursor_act);
+                // assign shortcut key
+                app.set_accels_for_action(&("win.".to_string() + text_edit::ACT_CURSOR_MOVE +
+                                            "(" + &(act.1 as i32).to_string() + ")"),
+                                          &[act.2]);
+            }).collect::<Vec<_>>();
+    }
 
     // shortcut ////////////////////////////////////////////
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_CLOSE_ALL_PAGE  ), &["<Ctrl>bracketright"]);
@@ -489,7 +507,7 @@ pub fn build_ui(app: &Application) {
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_SELECT_PREV_PAGE), &["<Ctrl>p"]);
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_TOGGLE_BGIMG),     &["<Ctrl>b"]);
 
-    app.set_accels_for_action("win.text_forward_char", &["<Alt>semicolon"]);
+    //app.set_accels_for_action("win.text_forward_char", &["<Alt>semicolon"]);
 
     // set attribute box after root is associated
     attribute_box.update_item_type(selection_model.clone());

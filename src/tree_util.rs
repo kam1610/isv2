@@ -80,7 +80,11 @@ pub mod tree_manipulate{
                                                                  &store,
                                                                  &new_node);
                 hist.push(h);
-                sel.model().unwrap().downcast::<gio::ListStore>().expect("ListStore").insert(0, &new_node);
+                let root_store= sel
+                    .model().unwrap().downcast::<TreeListModel>().expect("TreeListModel")
+                    .model().downcast::<gio::ListStore>().expect("ListStore");
+                root_store.insert(0, &new_node);
+
                 return;
             }
 

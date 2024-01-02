@@ -551,9 +551,29 @@ pub fn build_ui(app: &Application) {
                                             "(" + &(act.1 as i32).to_string() + ")"),
                                           &[act.2]);
             }).collect::<Vec<_>>();
-
     }
-
+    // text_c_n_p_commands /////////////////////////////////
+    let text_c_n_p_action = text_edit::act_c_n_p_text(window.clone());
+    window.add_action(&text_c_n_p_action);
+    {
+        let text_c_n_p_acts =
+            vec![("copy text",  text_edit::ActCnPTextCmd::Copy,  "<Alt>w"),
+                 ("cut text",   text_edit::ActCnPTextCmd::Cut,   "<Ctrl>w"),
+                 ("paste text", text_edit::ActCnPTextCmd::Paste, "<Ctrl>y"),];
+        let _ = text_c_n_p_acts.iter()
+            .map(|act|{
+                let menu_text_c_n_p_act =
+                    MenuItem::new(Some(act.0),
+                                  Some(&("win.".to_string() +
+                                  text_edit::ACT_C_N_P_TEXT +
+                                  "(" + &(act.1 as i32).to_string() + ")")));
+                menu_text_edit.append_item(&menu_text_c_n_p_act);
+                // assign shortcut key
+                app.set_accels_for_action(&("win.".to_string() + text_edit::ACT_C_N_P_TEXT +
+                                            "(" + &(act.1 as i32).to_string() + ")"),
+                                          &[act.2]);
+            }).collect::<Vec<_>>();
+    }
     ////////////////////////////////////////////////////////
     // shortcut ////////////////////////////////////////////
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_CLOSE_ALL_PAGE  ), &["<Ctrl>bracketright"]);

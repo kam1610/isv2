@@ -511,8 +511,11 @@ pub fn build_ui(app: &Application) {
     window.add_action(&text_delete_action);
     {
         let text_delete_acts =
-            vec![("delete backward char", text_edit::ActDelTextCmd::DelBackChar, "<Ctrl>h"),
-                 ("delete char",          text_edit::ActDelTextCmd::DelChar,     "<Ctrl>d"),];
+            vec![("delete backward char", text_edit::ActDelTextCmd::DelBackChar,  "<Ctrl>h"),
+                 ("delete char",          text_edit::ActDelTextCmd::DelChar,      "<Ctrl>d"),
+                 ("kill line",            text_edit::ActDelTextCmd::KillLine,     "<Ctrl>k"),
+                 ("backward kill word",   text_edit::ActDelTextCmd::BackKillWord, "<Alt>h" ),
+                 ("kill word",            text_edit::ActDelTextCmd::KillWord,     "<Alt>d" ),];
         let _ = text_delete_acts.iter()
             .map(|act|{
                 let menu_text_delete_act =

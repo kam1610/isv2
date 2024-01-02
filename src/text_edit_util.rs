@@ -62,8 +62,11 @@ pub mod text_edit{
         act.connect_activate(move|_act, val|{
             let val = val.expect("expect val").get::<i32>().expect("couldn't get i32 val");
             let val = match val {
-                x if x == ActDelTextCmd::DelBackChar   as i32 => {(DeleteType::Chars, -1)},
-                x if x == ActDelTextCmd::DelChar       as i32 => {(DeleteType::Chars,  1)},
+                x if x == ActDelTextCmd::DelBackChar  as i32 => {(DeleteType::Chars,           -1)},
+                x if x == ActDelTextCmd::DelChar      as i32 => {(DeleteType::Chars,            1)},
+                x if x == ActDelTextCmd::KillLine     as i32 => {(DeleteType::DisplayLineEnds,  1)},
+                x if x == ActDelTextCmd::BackKillWord as i32 => {(DeleteType::WordEnds,        -1)},
+                x if x == ActDelTextCmd::KillWord     as i32 => {(DeleteType::WordEnds,         1)},
                 _ => { println!("(act_edit_text) unexpected val: {}", val); return; }
             };
 

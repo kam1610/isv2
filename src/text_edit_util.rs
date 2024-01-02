@@ -64,18 +64,18 @@ pub mod text_edit{
                 if let Some(f) = GtkWindowExt::focus(&win) {f} else {return;};
             let val = val.expect("expect val").get::<i32>().expect("couldn't get i32 val");
             let val = match val {
-                x if x == ActDelTextCmd::DelBackChar  as i32 => {(DeleteType::Chars,           -1)},
-                x if x == ActDelTextCmd::DelChar      as i32 => {(DeleteType::Chars,            1)},
+                x if x == ActDelTextCmd::DelBackChar  as i32 => {(DeleteType::Chars, -1)},
+                x if x == ActDelTextCmd::DelChar      as i32 => {(DeleteType::Chars,  1)},
                 x if x == ActDelTextCmd::KillLine     as i32 => {
                     // workaround
                     if let Some(view) = current_focus.downcast_ref::<TextView>(){
                         view.emit_move_cursor(MovementStep::DisplayLineEnds, 1, true);
                         view.emit_delete_from_cursor(DeleteType::DisplayLineEnds, 1);
                     }
-                    return;
+                    (DeleteType::DisplayLineEnds, 1)
                 },
-                x if x == ActDelTextCmd::BackKillWord as i32 => {(DeleteType::WordEnds,        -1)},
-                x if x == ActDelTextCmd::KillWord     as i32 => {(DeleteType::WordEnds,         1)},
+                x if x == ActDelTextCmd::BackKillWord as i32 => {(DeleteType::WordEnds, -1)},
+                x if x == ActDelTextCmd::KillWord     as i32 => {(DeleteType::WordEnds,  1)},
                 _ => { println!("(act_edit_text) unexpected val: {}", val); return; }
             };
 

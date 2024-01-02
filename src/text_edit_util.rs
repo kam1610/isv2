@@ -74,9 +74,9 @@ pub mod text_edit{
                 if let Some(f) = GtkWindowExt::focus(&win) {f} else {return;};
             let val = val.expect("expect val").get::<i32>().expect("couldn't get i32 val");
             let val = match val {
-                x if x == ActDelTextCmd::DelBackChar  as i32 => {(DeleteType::Chars, -1)},
-                x if x == ActDelTextCmd::DelChar      as i32 => {(DeleteType::Chars,  1)},
-                x if x == ActDelTextCmd::KillLine     as i32 => {
+                x if x == ActDelTextCmd::DelBackChar as i32 => {(DeleteType::Chars, -1)},
+                x if x == ActDelTextCmd::DelChar     as i32 => {(DeleteType::Chars,  1)},
+                x if x == ActDelTextCmd::KillLine    as i32 => {
                     // workaround
                     // TODO: remove the line(=Delete one char) when the line has empty
                     if let Some(view) = current_focus.downcast_ref::<TextView>(){
@@ -132,21 +132,21 @@ pub mod text_edit{
 
             if let Some(view) = current_focus.downcast_ref::<TextView>(){
                 match val{
-                    x if x == ActCnPTextCmd::Copy as i32 => {
+                    x if x == ActCnPTextCmd::Copy  as i32 => {
                         view.emit_copy_clipboard(); },
                     x if x == ActCnPTextCmd::Paste as i32 => {
                         view.emit_paste_clipboard(); },
-                    x if x == ActCnPTextCmd::Cut as i32 => {
+                    x if x == ActCnPTextCmd::Cut   as i32 => {
                         view.emit_cut_clipboard(); },
                     _ => { println!("(act_c_n_p_text) unexpected val: {}", val); }
                 }
             } else if let Some(text) = current_focus.downcast_ref::<gtk::Text>(){
                 match val{
-                    x if x == ActCnPTextCmd::Copy as i32 => {
+                    x if x == ActCnPTextCmd::Copy  as i32 => {
                         text.emit_copy_clipboard(); },
                     x if x == ActCnPTextCmd::Paste as i32 => {
                         text.emit_paste_clipboard(); },
-                    x if x == ActCnPTextCmd::Cut as i32 => {
+                    x if x == ActCnPTextCmd::Cut   as i32 => {
                         text.emit_cut_clipboard(); },
                     _ => { println!("(act_c_n_p_text) unexpected val: {}", val); }
                 }

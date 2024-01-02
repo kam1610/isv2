@@ -492,9 +492,7 @@ pub fn build_ui(app: &Application) {
                                ("next line 3",    text_edit::ActCursorCmd::NextLine3, "<Alt>9"),
                                ("prev line 3",    text_edit::ActCursorCmd::PrevLine3, "<Alt>0"),
                                ("beginning line", text_edit::ActCursorCmd::BegLine  , "<Ctrl>a"),
-                               ("end line",       text_edit::ActCursorCmd::EndLine  , "<Ctrl>e"),
-
-        ];
+                               ("end line",       text_edit::ActCursorCmd::EndLine  , "<Ctrl>e"),];
         let _ = cursor_acts.iter()
             .map(|act|{
                 let menu_cursor_act = MenuItem::new(Some(act.0),
@@ -508,7 +506,30 @@ pub fn build_ui(app: &Application) {
                                           &[act.2]);
             }).collect::<Vec<_>>();
     }
+    // text edit commaonds /////////////////////////////////
+    let text_delete_action = text_edit::act_delete_text(window.clone());
+    window.add_action(&text_delete_action);
+    {
+        let text_delete_acts =
+            vec![("delete backward char", text_edit::ActDelTextCmd::DelBackChar, "<Ctrl>h"),
+                 ("delete char",          text_edit::ActDelTextCmd::DelChar,     "<Ctrl>d"),];
+        let _ = text_delete_acts.iter()
+            .map(|act|{
+                let menu_text_delete_act =
+                    MenuItem::new(Some(act.0),
+                                  Some(&("win.".to_string() +
+                                         text_edit::ACT_DEL_TEXT +
+                                         "(" + &(act.1 as i32).to_string() + ")")));
+                menu_text_edit.append_item(&menu_text_delete_act);
+                // assign shortcut key
+                app.set_accels_for_action(&("win.".to_string() + text_edit::ACT_DEL_TEXT +
+                                            "(" + &(act.1 as i32).to_string() + ")"),
+                                          &[act.2]);
+            }).collect::<Vec<_>>();
 
+    }
+
+    ////////////////////////////////////////////////////////
     // shortcut ////////////////////////////////////////////
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_CLOSE_ALL_PAGE  ), &["<Ctrl>bracketright"]);
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_SELECT_NEXT_PAGE), &["<Ctrl>n"]);

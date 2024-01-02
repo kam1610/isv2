@@ -466,6 +466,14 @@ pub fn build_ui(app: &Application) {
 
             }).collect::<Vec<_>>();
     }
+    // rm_tree_node ////////////////////////////////////////
+    let rm_tree_node = tree_manipulate::act_tree_node_rm(selection_model.clone(),
+                                                         history.clone(),
+                                                         mediator.clone());
+    window.add_action(&rm_tree_node);
+    let menu_rm_tree_node = MenuItem::new(Some(tree_manipulate::ACT_TREE_NODE_RM),
+                                          Some( &("win".to_string() + tree_manipulate::ACT_TREE_NODE_RM) ));
+    menu_tree_edit.append_item(&menu_rm_tree_node);
 
     ////////////////////////////////////////////////////////
     // menu text edit //////////////////////////////////////
@@ -506,6 +514,7 @@ pub fn build_ui(app: &Application) {
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_SELECT_NEXT_PAGE), &["<Ctrl>n"]);
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_SELECT_PREV_PAGE), &["<Ctrl>p"]);
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_TOGGLE_BGIMG),     &["<Ctrl>b"]);
+    app.set_accels_for_action(&("win.".to_string() + tree_manipulate::ACT_TREE_NODE_RM),  &["<Ctrl><Shift>r"]);
 
     //app.set_accels_for_action("win.text_forward_char", &["<Alt>semicolon"]);
 

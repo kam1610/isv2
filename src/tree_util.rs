@@ -28,6 +28,8 @@ pub mod tree_manipulate{
     use crate::sno_list::row_to_parent_store;
     use crate::sno_list::selection_to_sno;
     use crate::tree_util::tree_manipulate;
+    use crate::isv2_mediator::Isv2Mediator;
+    use crate::scenario_node_object::remove_node;
 
     pub const ACT_TREE_NODE_ADD   : &str = "tree_node_add";
     pub const ACT_TREE_NODE_GROUP : &str = "add__group";
@@ -36,6 +38,26 @@ pub mod tree_manipulate{
     pub const ACT_TREE_NODE_MAT   : &str = "add__mat";
     pub const ACT_TREE_NODE_OVIMG : &str = "add__ovimg";
     pub const ACT_TREE_NODE_PMAT  : &str = "add__pmat";
+    pub const ACT_TREE_NODE_RM    : &str = "tree_node_rm";
+
+    // act_tree_mode_rm ////////////////////////////////////
+    pub fn act_tree_node_rm(sel     : SingleSelection,
+                            hist    : Rc<OperationHistory>,
+                            mediator: Isv2Mediator
+    ) -> SimpleAction{
+        let act = SimpleAction::new(ACT_TREE_NODE_RM, None);
+        act.connect_activate(move|_, _| {
+            if let Ok(hdl) = singleselection_to_dest_member(&sel){
+                let h= OperationHistoryItem::new_from_handle(Operation::Remove, hdl);
+                hist.push(h.clone());
+                remove_node(h.src.store.unwrap().as_ref(), h.src.sno.unwrap().as_ref());
+                mediator.emit_by_name::<()>("sno-selected", &[&sel]);
+            } else {
+                println!("empty!");
+            }
+        });
+        act
+    }
 
     // act_tree_node_add ///////////////////////////////////
     pub fn act_tree_node_add(sel: SingleSelection, hist: Rc<OperationHistory>) -> SimpleAction{

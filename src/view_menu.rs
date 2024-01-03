@@ -15,8 +15,6 @@ pub mod view_actions{
     use crate::sno_list::selection_to_sno;
 
     pub const ACT_CLOSE_ALL_PAGE   : &str = "view_close_all_page";
-    pub const ACT_SELECT_NEXT_PAGE : &str = "view_select_next_page";
-    pub const ACT_SELECT_PREV_PAGE : &str = "view_select_prev_page";
     pub const ACT_TOGGLE_BGIMG     : &str = "view_toggle_bgimg";
 
     pub const ACT_TREE_NODE_SEL : &str = "tree_node_sel";
@@ -98,22 +96,6 @@ pub mod view_actions{
             else {
                 n-= 1; }
         }
-    }
-    // act_select_prev_page //////////////////////////////////
-    pub fn act_select_prev_page(sel : SingleSelection) -> SimpleAction{
-        let act = SimpleAction::new(ACT_SELECT_PREV_PAGE, None);
-        act.connect_activate(move|_act, _val|{
-            select_near_page(&sel, false);
-        });
-        act
-    }
-    // act_select_next_page //////////////////////////////////
-    pub fn act_select_next_page(sel : SingleSelection) -> SimpleAction{
-        let act = SimpleAction::new(ACT_SELECT_NEXT_PAGE, None);
-        act.connect_activate(move|_act, _val|{
-            select_near_page(&sel, true);
-        });
-        act
     }
     // act_close_all_page //////////////////////////////////
     pub fn act_close_all_page(sel : SingleSelection) -> SimpleAction{

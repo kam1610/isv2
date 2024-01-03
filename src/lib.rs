@@ -358,6 +358,24 @@ pub fn build_ui(app: &Application) {
         }
     }));
 
+    ////////////////////////////////////////////////////////
+    // util for assign menu item and shortcut
+    fn assign_acti32_and_accelkey(acts       : &Vec<(&str, &str, i32, &str)>,
+                                  parent_menu: &Menu,
+                                  app        : &Application){
+        let _ = acts.iter()
+            .map(|act|{
+                let menu_act = MenuItem::new(Some(act.0),
+                                             Some(&("win.".to_string() +
+                                                    act.1 +
+                                                    "(" + &(act.2).to_string() + ")")));
+                parent_menu.append_item(&menu_act);
+                app.set_accels_for_action(&("win.".to_string() + act.1 +
+                                            "(" + &(act.2).to_string() + ")"),
+                                          &[act.3]);
+            }).collect::<Vec<_>>();
+    }
+
     // menu ////////////////////////////////////////////////
     let menu      = Menu::new();
 
@@ -394,37 +412,41 @@ pub fn build_ui(app: &Application) {
     menu_file.append_item(&menu_item_export_img);
     ////////////////////////////////////////////////////////
     // view menu ///////////////////////////////////////////
-    let menu_view = Menu::new();
-    menu.append_submenu(Some("_View"), &menu_view);
+    let menu_node_view = Menu::new();
+    menu.append_submenu(Some("_View"), &menu_node_view);
+    // view comands ////////////////////////////////////////
+    let select_tree_node = view_actions::act_tree_node_sel(selection_model.clone());
+    window.add_action(&select_tree_node);
+
+    let node_view_acts = vec![
+        ("forward nonde",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::FwdNode  as i32, "<Alt>n"),
+        ("backward node",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::BackNode as i32, "<Alt>p"),
+        // ("forward nonde 3",      view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::FwdNode  as i32, "<Alt>n"), // considerating good shortcut key
+        // ("backward node 3", view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::BackNode as i32, "<Alt>p"),
+        ("forward page",    view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::FwdPage  as i32, "<Alt><Shift>n"),
+        ("backward page",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::BackPage as i32, "<Alt><Shift>p"),
+        ("expand node",     view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::Collapse as i32, "<Alt>c"),
+        ("collapse node",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::Expand   as i32, "<Alt>e"),];
+    assign_acti32_and_accelkey(&node_view_acts, &menu_node_view, &app);
+
     // close_all_page //////////////////////////////////////
     let act_close_all_page = view_actions::act_close_all_page(selection_model.clone());
     app.add_action(&act_close_all_page);
     let menu_item_close_all_page = MenuItem::new(Some("CloseAll_Page"),
                                                  Some( &("app.".to_string() + view_actions::ACT_CLOSE_ALL_PAGE) ));
-    menu_view.append_item(&menu_item_close_all_page);
-    // select_next_page ////////////////////////////////////
-    let act_select_next_page = view_actions::act_select_next_page(selection_model.clone());
-    app.add_action(&act_select_next_page);
-    let menu_item_select_next_page = MenuItem::new(Some("Select_NextPage"),
-                                              Some( &("app.".to_string() + view_actions::ACT_SELECT_NEXT_PAGE) ));
-    menu_view.append_item(&menu_item_select_next_page);
-    // select_prev_page ////////////////////////////////////
-    let act_select_prev_page = view_actions::act_select_prev_page(selection_model.clone());
-    app.add_action(&act_select_prev_page);
-    let menu_item_select_prev_page = MenuItem::new(Some("Select_PrevPage"),
-                                              Some( &("app.".to_string() + view_actions::ACT_SELECT_PREV_PAGE) ));
-    menu_view.append_item(&menu_item_select_prev_page);
+    menu_node_view.append_item(&menu_item_close_all_page);
 
     // toggle_bgimg ////////////////////////////////////
     let act_toggle_bgimg = view_actions::act_toggle_bgimg(param.clone(), mediator.clone(), selection_model.clone());
     app.add_action(&act_toggle_bgimg);
     let menu_item_toggle_bgimg = MenuItem::new(Some("_ToggleBgimg"),
                                                Some( &("app.".to_string() + view_actions::ACT_TOGGLE_BGIMG) ));
-    menu_view.append_item(&menu_item_toggle_bgimg);
+    menu_node_view.append_item(&menu_item_toggle_bgimg);
+
     ////////////////////////////////////////////////////////
     // preferences menu ////////////////////////////////////
     let menu_pref = Menu::new();
-    menu.append_submenu(Some("_Preferences"), &menu_pref);
+    menu.append_submenu(Some("Preferences"), &menu_pref);
     // edit_preference /////////////////////////////////////
     let act_edit_pref = pref_actions::act_open_pref_menu(param.clone(),
                                                          mediator.clone(),
@@ -492,47 +514,32 @@ pub fn build_ui(app: &Application) {
     let text_c_n_p_action  = text_edit::act_c_n_p_text(window.clone());
     window.add_action(&text_c_n_p_action);
 
-    {
-        let cursor_acts = vec![
-            ("forward char",         text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::FwdChar       as i32, "<Alt>semicolon"),
-            ("backward char",        text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::BackChar      as i32, "<Alt>J"),
-            ("forward word",         text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::FwdWord       as i32, "<Alt>o"),
-            ("backword word",        text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::BackWord      as i32, "<Alt>i"),
-            ("next line",            text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::NextLine      as i32, "<Alt>k"),
-            ("prev line",            text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::PrevLine      as i32, "<Alt>l"),
-            ("next line 3",          text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::NextLine3     as i32, "<Alt>9"),
-            ("prev line 3",          text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::PrevLine3     as i32, "<Alt>0"),
-            ("beginning line",       text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::BegLine       as i32, "<Ctrl>a"),
-            ("end line",             text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::EndLine       as i32, "<Ctrl>e"),
-            ("delete backward char", text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::DelBackChar  as i32, "<Ctrl>h"),
-            ("delete char",          text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::DelChar      as i32, "<Ctrl>d"),
-            ("kill line",            text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::KillLine     as i32, "<Ctrl>k"),
-            ("backward kill word",   text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::BackKillWord as i32, "<Alt>h" ),
-            ("kill word",            text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::KillWord     as i32, "<Alt>d" ),
-            ("new line",             text_edit::ACT_INS_TEXT,    text_edit::ActInsTextCmd::NewLine      as i32, "<Ctrl>m"),
-            ("open line",            text_edit::ACT_INS_TEXT,    text_edit::ActInsTextCmd::OpenLine     as i32, "<Ctrl>o"),
-            ("copy text",            text_edit::ACT_C_N_P_TEXT,  text_edit::ActCnPTextCmd::Copy         as i32, "<Alt>w"),
-            ("cut text",             text_edit::ACT_C_N_P_TEXT,  text_edit::ActCnPTextCmd::Cut          as i32, "<Ctrl>w"),
-            ("paste text",           text_edit::ACT_C_N_P_TEXT,  text_edit::ActCnPTextCmd::Paste        as i32, "<Ctrl>y"),];
-        let _ = cursor_acts.iter()
-            .map(|act|{
-                let menu_cursor_act = MenuItem::new(Some(act.0),
-                                                    Some(&("win.".to_string() +
-                                                           act.1 +
-                                                           "(" + &(act.2).to_string() + ")")));
-                menu_text_edit.append_item(&menu_cursor_act);
-                // assign shortcut key
-                app.set_accels_for_action(&("win.".to_string() + act.1 +
-                                            "(" + &(act.2).to_string() + ")"),
-                                          &[act.3]);
-            }).collect::<Vec<_>>();
-    }
+    let text_edit_acts = vec![
+        ("forward char",         text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::FwdChar       as i32, "<Alt>semicolon"),
+        ("backward char",        text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::BackChar      as i32, "<Alt>J"),
+        ("forward word",         text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::FwdWord       as i32, "<Alt>o"),
+        ("backword word",        text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::BackWord      as i32, "<Alt>i"),
+        ("next line",            text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::NextLine      as i32, "<Alt>k"),
+        ("prev line",            text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::PrevLine      as i32, "<Alt>l"),
+        ("next line 3",          text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::NextLine3     as i32, "<Alt>9"),
+        ("prev line 3",          text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::PrevLine3     as i32, "<Alt>0"),
+        ("beginning line",       text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::BegLine       as i32, "<Ctrl>a"),
+        ("end line",             text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::EndLine       as i32, "<Ctrl>e"),
+        ("delete backward char", text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::DelBackChar  as i32, "<Ctrl>h"),
+        ("delete char",          text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::DelChar      as i32, "<Ctrl>d"),
+        ("kill line",            text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::KillLine     as i32, "<Ctrl>k"),
+        ("backward kill word",   text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::BackKillWord as i32, "<Alt>h" ),
+        ("kill word",            text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::KillWord     as i32, "<Alt>d" ),
+        ("new line",             text_edit::ACT_INS_TEXT,    text_edit::ActInsTextCmd::NewLine      as i32, "<Ctrl>m"),
+        ("open line",            text_edit::ACT_INS_TEXT,    text_edit::ActInsTextCmd::OpenLine     as i32, "<Ctrl>o"),
+        ("copy text",            text_edit::ACT_C_N_P_TEXT,  text_edit::ActCnPTextCmd::Copy         as i32, "<Alt>w"),
+        ("cut text",             text_edit::ACT_C_N_P_TEXT,  text_edit::ActCnPTextCmd::Cut          as i32, "<Ctrl>w"),
+        ("paste text",           text_edit::ACT_C_N_P_TEXT,  text_edit::ActCnPTextCmd::Paste        as i32, "<Ctrl>y"),];
+    assign_acti32_and_accelkey(&text_edit_acts, &menu_text_edit, &app);
 
     ////////////////////////////////////////////////////////
     // shortcut ////////////////////////////////////////////
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_CLOSE_ALL_PAGE  ), &["<Ctrl>bracketright"]);
-    app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_SELECT_NEXT_PAGE), &["<Ctrl>n"]);
-    app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_SELECT_PREV_PAGE), &["<Ctrl>p"]);
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_TOGGLE_BGIMG),     &["<Ctrl>b"]);
     app.set_accels_for_action(&("win.".to_string() + tree_manipulate::ACT_TREE_NODE_RM),  &["<Ctrl><Shift>r"]);
 

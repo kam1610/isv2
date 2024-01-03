@@ -447,6 +447,9 @@ fn build_mat_attribute_box(b        : &ScenarioNodeAttributeBox,
     name_box.append(&name_entry);
     */
 
+    // bgimg ///////////////////////////////////////////////
+
+
     // color_box ///////////////////////////////////////////
     let color_box = Rc::new(Isv2ColorBox::build( root.clone(),
                                                  "mat color",
@@ -602,6 +605,7 @@ struct Isv2FileDialogBox{
     pub file_dialog_box    : Box,
     pub file_dialog_label  : Label,
     pub file_dialog_entry  : Entry,
+    pub enable_check       : CheckButton,
 }
 impl Isv2FileDialogBox {
     pub fn build(root      : Root,
@@ -660,7 +664,17 @@ impl Isv2FileDialogBox {
                                   }));
                    }));
 
+        let enable_check = CheckButton::builder().active(sno.get_node().get_scene_bg_en().unwrap()).build();
+        enable_check.connect_toggled(
+            clone!(@strong mediator,
+                   @strong sno => move|chk|{
+                       sno.get_node().set_scene_bg_en(chk.is_active());
+                       mediator.upgrade().unwrap()
+                           .emit_by_name::<()>("scene-attribute-changed", &[&sno]);
+                   }));
+
         file_dialog_box.append(&file_dialog_label);
+        file_dialog_box.append(&enable_check);
         file_dialog_box.append(&file_dialog_entry);
         file_dialog_box.append(&file_dialog_button);
 
@@ -668,6 +682,7 @@ impl Isv2FileDialogBox {
             file_dialog_box,
             file_dialog_label,
             file_dialog_entry,
+            enable_check,
         }
     }
 }
@@ -989,19 +1004,6 @@ fn build_scene_attribute_box(sno      : ScenarioNodeObject,
                                              sno.clone(),
                                              mediator.clone(),
                                              parameter.clone());
-    // bg_en ///////////////////////////////////////////////
-    let bg_en_box   = Box::builder().orientation(Orientation::Horizontal).build();
-    let bg_en_label = Label::new(Some("bg enable"));
-    let bg_en_check = CheckButton::builder().active(sno.get_node().get_scene_bg_en().unwrap()).build();
-    bg_en_check.connect_toggled(
-        clone!(@strong mediator,
-               @strong sno => move|bgchk|{
-                   sno.get_node().set_scene_bg_en(bgchk.is_active());
-                   mediator.upgrade().unwrap()
-                       .emit_by_name::<()>("scene-attribute-changed", &[&sno]);
-               }));
-    bg_en_box.append(&bg_en_label);
-    bg_en_box.append(&bg_en_check);
 
     // bg color //////////////////////////////////////////
     // Isv2ColorBox will emits "mat-attribute-changed" to mediator,
@@ -1024,8 +1026,7 @@ fn build_scene_attribute_box(sno      : ScenarioNodeObject,
     // label ///////////////////////////////////////////////
     let gray_list = vec![bgimg_box.file_dialog_label.upcast_ref::<Widget>().clone(),
                          bgimg_box.file_dialog_entry.upcast_ref::<Widget>().clone(),
-                         bg_en_label.upcast_ref::<Widget>().clone(),
-                         bg_en_check.upcast_ref::<Widget>().clone(),
+                         bgimg_box.enable_check.upcast_ref::<Widget>().clone(),
                          bg_color_box.color_label.upcast_ref::<Widget>().clone(),
                          bg_color_box.color_entry.upcast_ref::<Widget>().clone(),
                          crop_editor.crop_label.upcast_ref::<Widget>().clone(),
@@ -1046,7 +1047,6 @@ fn build_scene_attribute_box(sno      : ScenarioNodeObject,
     // apply to temp_box
     temp_box.append(&label_box);
     temp_box.append(&bgimg_box.file_dialog_box);
-    temp_box.append(&bg_en_box);
     temp_box.append(&bg_color_box.get_box());
     temp_box.append(&crop_editor.crop_box);
 

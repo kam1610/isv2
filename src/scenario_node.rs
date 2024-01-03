@@ -1315,6 +1315,8 @@ pub struct Mat {
     pub line_spacing  : f32,
     pub vertical      : bool,
     pub text          : String,
+    #[serde(default)]
+    pub bgimg         : Option<PathBuf>,
 }
 impl Mat {
     pub fn dump(&self) {
@@ -1351,6 +1353,7 @@ impl Default for Mat{
             font_family   : String::from("Rounded M+ 1m"),
             line_spacing  : 0.8,
             vertical      : false,
+            bgimg         : None,
         }
     }
 }

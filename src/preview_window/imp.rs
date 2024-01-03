@@ -9,6 +9,8 @@ use gtk::subclass::prelude::*;
 use std::cell::Cell;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::collections::HashMap;
+use std::collections::hash_map::DefaultHasher;
 
 use once_cell::sync::Lazy;
 
@@ -33,6 +35,8 @@ pub struct PreviewWindow {
     pub(super) parameter            : RefCell<WeakRef<Isv2Parameter>>,
     pub(super) tgt_to_pwin_scale    : Cell<f64>,
     pub(super) status_bar           : RefCell<Option<Rc<StatusBar>>>,
+    pub(super) img_mat_buf          : RefCell<HashMap<usize, Pixbuf>>,
+    pub(super) hasher               : DefaultHasher,
 }
 
 // The central trait for subclassing a GObject
@@ -85,6 +89,8 @@ impl Default for PreviewWindow {
             parameter            : RefCell::new(WeakRef::new()),
             tgt_to_pwin_scale    : Cell::new(1.0),
             status_bar           : RefCell::new(None),
+            img_mat_buf          : RefCell::new(HashMap::new()),
+            hasher               : DefaultHasher::new(),
         }
     }
 }

@@ -1045,7 +1045,7 @@ impl ScenarioNode {
     // mat_bgimg /////////////////////////////////////
     pub fn get_mat_bgimg(&self) -> Option<PathBuf>{
         match &(*self.value.borrow()){
-            Item::Mat(m) => {
+            Item::Mat(m) | Item::Pmat(m) => {
                 if let Some(b) = &m.bgimg { Some(b.clone()) }
                 else { None }
             },
@@ -1054,7 +1054,7 @@ impl ScenarioNode {
     }
     pub fn set_mat_bgimg(&self, p: Option<PathBuf>){
         match *self.value.borrow_mut(){
-            Item::Mat(ref mut m) => {
+            Item::Mat(ref mut m) | Item::Pmat(ref mut m) => {
                 m.bgimg = p;
             },
             _ => ()
@@ -1063,7 +1063,7 @@ impl ScenarioNode {
     // mat_bg_en /////////////////////////////////////////
     pub fn get_mat_bg_en(&self) -> Option<bool>{
         match &(*self.value.borrow()) {
-            Item::Mat(m) => {
+            Item::Mat(m) | Item::Mat(m) => {
                 Some( m.bg_en )
             },
             _ => None,
@@ -1071,7 +1071,7 @@ impl ScenarioNode {
     }
     pub fn set_mat_bg_en(&self, en: bool){
             match *self.value.borrow_mut(){
-            Item::Mat(ref mut m) => {
+            Item::Mat(ref mut m) | Item::Mat(ref mut m) => {
                 m.bg_en = en;
             },
             _ => ()

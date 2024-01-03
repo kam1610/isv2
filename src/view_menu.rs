@@ -6,6 +6,7 @@ pub mod view_actions{
     use gtk::prelude::CastNone;
     use gtk::prelude::ListModelExt;
     use gtk::prelude::ObjectExt;
+    use gtk::glib::VariantTy;
 
     use crate::isv2_mediator::Isv2Mediator;
     use crate::isv2_parameter::Isv2Parameter;
@@ -18,9 +19,52 @@ pub mod view_actions{
     pub const ACT_SELECT_PREV_PAGE : &str = "view_select_prev_page";
     pub const ACT_TOGGLE_BGIMG     : &str = "view_toggle_bgimg";
 
-    // select_near_page ////////////////////////////////
-    fn select_near_page(sel : SingleSelection, downward: bool){
+    pub const ACT_TREE_NODE_SEL : &str = "tree_node_sel";
+    #[derive(Debug, Clone, Copy)]
+    pub enum ActTreeNodeSelCmd {
+        FwdNode,      BackNode,
+        FwdNode3,     BackNode3,
+        FwdPage,      BackPage,
+        Collapse,     Expand,
+    }
+    // select_near_node ////////////////////////////////////
+    fn select_near_node(sel: &SingleSelection, num: i32, downward: bool){
+        if sel.n_items() < 2 { return; }
+        let mut n = sel.selected() as i32;
+        if downward { n+= num; } else { n-= num; }
+
+        let lim = (sel.n_items() as i32) - 1;
+        if lim < n { n = lim; }
+        if n   < 0 { n = 0;   }
+
+        sel.set_selected(n as u32);
+    }
+    // expand_node /////////////////////////////////////////
+    fn expand_node(sel: &SingleSelection, expand: bool){
         if sel.n_items() < 1 { return; }
+        let n   = sel.selected() as i32;
+        let row = sel.item(n as u32).unwrap().downcast::<TreeListRow>().expect("row");
+        row.set_expanded(expand);
+    }
+    // act_tree_node_sel ///////////////////////////////////
+    pub fn act_tree_node_sel(sel: SingleSelection) -> SimpleAction{
+        let act = SimpleAction::new(ACT_TREE_NODE_SEL, Some(&VariantTy::INT32));
+        act.connect_activate(move|_act, val|{
+            let val = val.expect("expect val").get::<i32>().expect("couldn't get i32 val");
+                 if val == ActTreeNodeSelCmd::FwdNode   as i32 { select_near_node(&sel, 1, true ); }
+            else if val == ActTreeNodeSelCmd::BackNode  as i32 { select_near_node(&sel, 1, false); }
+            else if val == ActTreeNodeSelCmd::FwdNode3  as i32 { select_near_node(&sel, 3, true ); }
+            else if val == ActTreeNodeSelCmd::BackNode3 as i32 { select_near_node(&sel, 3, false); }
+            else if val == ActTreeNodeSelCmd::FwdPage   as i32 { select_near_page(&sel, true ); }
+            else if val == ActTreeNodeSelCmd::BackPage  as i32 { select_near_page(&sel, false); }
+            else if val == ActTreeNodeSelCmd::Expand    as i32 { expand_node(&sel, true ); }
+            else if val == ActTreeNodeSelCmd::Collapse  as i32 { expand_node(&sel, false); }
+        });
+        act
+    }
+    // select_near_page ////////////////////////////////
+    fn select_near_page(sel : &SingleSelection, downward: bool){
+        if sel.n_items() < 2 { return; }
         let mut n = sel.selected() as i32;
 
         // if group or scene is selected in initial, then open it
@@ -55,12 +99,11 @@ pub mod view_actions{
                 n-= 1; }
         }
     }
-
     // act_select_prev_page //////////////////////////////////
     pub fn act_select_prev_page(sel : SingleSelection) -> SimpleAction{
         let act = SimpleAction::new(ACT_SELECT_PREV_PAGE, None);
         act.connect_activate(move|_act, _val|{
-            select_near_page(sel.clone(), false);
+            select_near_page(&sel, false);
         });
         act
     }
@@ -68,7 +111,7 @@ pub mod view_actions{
     pub fn act_select_next_page(sel : SingleSelection) -> SimpleAction{
         let act = SimpleAction::new(ACT_SELECT_NEXT_PAGE, None);
         act.connect_activate(move|_act, _val|{
-            select_near_page(sel.clone(), true);
+            select_near_page(&sel, true);
         });
         act
     }

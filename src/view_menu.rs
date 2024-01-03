@@ -7,6 +7,7 @@ pub mod view_actions{
     use gtk::prelude::ListModelExt;
     use gtk::prelude::ObjectExt;
     use gtk::glib::VariantTy;
+    use gtk::prelude::*;
 
     use crate::isv2_mediator::Isv2Mediator;
     use crate::isv2_parameter::Isv2Parameter;
@@ -14,6 +15,7 @@ pub mod view_actions{
     use crate::scenario_node_object::ScenarioNodeObject;
     use crate::sno_list::selection_to_sno;
 
+    pub const ACT_FOCUS_TEXT_VIEW  : &str = "select_text_view";
     pub const ACT_CLOSE_ALL_PAGE   : &str = "view_close_all_page";
     pub const ACT_TOGGLE_BGIMG     : &str = "view_toggle_bgimg";
 
@@ -24,6 +26,13 @@ pub mod view_actions{
         FwdNode3,     BackNode3,
         FwdPage,      BackPage,
         Collapse,     Expand,
+    }
+
+    // act_focus_text_view /////////////////////////////////
+    pub fn act_focus_text_view(w: impl WidgetExt) -> SimpleAction{
+        let act = SimpleAction::new(ACT_FOCUS_TEXT_VIEW, None);
+        act.connect_activate(move|_act, _val|{ println!("grab!"); w.grab_focus(); });
+        act
     }
     // select_near_node ////////////////////////////////////
     fn select_near_node(sel: &SingleSelection, num: i32, downward: bool){

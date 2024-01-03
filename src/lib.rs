@@ -537,10 +537,14 @@ pub fn build_ui(app: &Application) {
         ("paste text",           text_edit::ACT_C_N_P_TEXT,  text_edit::ActCnPTextCmd::Paste        as i32, "<Ctrl>y"),];
     assign_acti32_and_accelkey(&text_edit_acts, &menu_text_edit, &app);
 
+    let focus_text_view = view_actions::act_focus_text_view(text_view.clone());
+    window.add_action(&focus_text_view);
+
     ////////////////////////////////////////////////////////
     // shortcut ////////////////////////////////////////////
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_CLOSE_ALL_PAGE  ), &["<Ctrl>bracketright"]);
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_TOGGLE_BGIMG),     &["<Ctrl>b"]);
+    app.set_accels_for_action(&("win.".to_string() + view_actions::ACT_FOCUS_TEXT_VIEW),  &["F2"]);
     app.set_accels_for_action(&("win.".to_string() + tree_manipulate::ACT_TREE_NODE_RM),  &["<Ctrl><Shift>r"]);
 
     app.set_accels_for_action("win.text_forward_char", &["<Alt>semicolon"]);

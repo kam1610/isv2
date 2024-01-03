@@ -432,12 +432,13 @@ impl Isv2FloatEntryBox{
     }
 }
 // build_mat_attribute_box ////////////////////////////////
-fn build_mat_attribute_box(b        : &ScenarioNodeAttributeBox,
-                           root     : Root,
-                           mediator : WeakRef<Object>,
-                           store    : gio::ListStore,
-                           sno      : ScenarioNodeObject,
-                           temp_box : &Box){
+fn build_mat_attribute_box(b         : &ScenarioNodeAttributeBox,
+                           root      : Root,
+                           mediator  : WeakRef<Object>,
+                           store     : gio::ListStore,
+                           sno       : ScenarioNodeObject,
+                           temp_box  : &Box,
+                           parameter : Isv2Parameter){
     // name ////////////////////////////////////////////////
     /*
     let name_box = Box::builder().orientation(Orientation::Horizontal).build();
@@ -448,7 +449,11 @@ fn build_mat_attribute_box(b        : &ScenarioNodeAttributeBox,
     */
 
     // bgimg ///////////////////////////////////////////////
-
+    let bgimg_box = Isv2FileDialogBox::build(root.clone(),
+                                             sno.clone(),
+                                             mediator.clone(),
+                                             parameter.clone(),
+                                             "mat-attribute-changed".to_string());
 
     // color_box ///////////////////////////////////////////
     let color_box = Rc::new(Isv2ColorBox::build( root.clone(),
@@ -561,7 +566,10 @@ fn build_mat_attribute_box(b        : &ScenarioNodeAttributeBox,
         set_css_grayout(vec![vertical_label.upcast_ref::<Widget>().clone()], true);
     }
     // label ///////////////////////////////////////////////
-    let gray_list = vec![round_label.upcast_ref::<Widget>().clone(),
+    let gray_list = vec![bgimg_box.file_dialog_label.upcast_ref::<Widget>().clone(),
+                         bgimg_box.file_dialog_entry.upcast_ref::<Widget>().clone(),
+                         bgimg_box.enable_check.upcast_ref::<Widget>().clone(),
+                         round_label.upcast_ref::<Widget>().clone(),
                          round_entry.upcast_ref::<Widget>().clone(),
                          color_box.color_label.upcast_ref::<Widget>().clone(),
                          color_box.color_entry.upcast_ref::<Widget>().clone(),
@@ -587,6 +595,7 @@ fn build_mat_attribute_box(b        : &ScenarioNodeAttributeBox,
 
     // apply to temp_box
     //temp_box.append(&name_box);
+    temp_box.append(&bgimg_box.file_dialog_box);
     temp_box.append(&color_box.get_box());
     temp_box.append(&label_box);
     temp_box.append(&posdim_box.get_box());
@@ -647,29 +656,52 @@ impl Isv2FileDialogBox {
                    @strong file_dialog,
                    @strong file_dialog_entry,
                    @weak   sno,
-                   @strong mediator => move |_b|{
+                   @strong mediator,
+                   @strong mediator_msg => move |_b|{
                        let root_win = root.downcast_ref::<Window>().unwrap();
                        file_dialog.open(
                            Some(root_win),
                            None::<&Cancellable>,
                            clone!(@strong file_dialog_entry,
                                   @strong sno,
-                                  @strong mediator => move|r|{
+                                  @strong mediator,
+                                  @strong mediator_msg => move|r|{
                                       let f = if let Ok(f) = r { f } else { return; };
-                                      sno.get_node().set_scene_bgimg(
-                                          Some(f.path().unwrap())
-                                      );
+                                      if sno.get_node().is_scene() {
+                                          sno.get_node().set_scene_bgimg(
+                                              Some(f.path().unwrap()))
+                                      } else if sno.get_node().is_mat() {
+                                          sno.get_node().set_mat_bgimg(
+                                              Some(f.path().unwrap()))
+                                      } else {
+                                          println!("(Isv2FileDialogBox) unsupported node!");
+                                          return;
+                                      }
                                       file_dialog_entry.set_text(f.path().unwrap().to_str().unwrap());
                                       mediator.upgrade().unwrap()
-                                          .emit_by_name::<()>("scene-attribute-changed", &[&sno]);
+                                          .emit_by_name::<()>(&mediator_msg, &[&sno]);
                                   }));
                    }));
 
-        let enable_check = CheckButton::builder().active(sno.get_node().get_scene_bg_en().unwrap()).build();
+        //let enable_check = CheckButton::builder().active(sno.get_node().get_scene_bg_en().unwrap()).build();
+        let enable_check = CheckButton::new();
+        if (sno.get_node().is_scene() && sno.get_node().get_scene_bg_en().unwrap()) ||
+            (sno.get_node().is_mat() && sno.get_node().get_mat_bg_en().unwrap()) {
+                enable_check.set_active(true);
+            } else {
+                enable_check.set_active(false);
+            }
+
         enable_check.connect_toggled(
             clone!(@strong mediator,
                    @strong sno => move|chk|{
-                       sno.get_node().set_scene_bg_en(chk.is_active());
+                       if sno.get_node().is_scene() {
+                           sno.get_node().set_scene_bg_en(chk.is_active());
+                       } else if sno.get_node().is_mat() {
+                           sno.get_node().set_mat_bg_en(chk.is_active());
+                       } else {
+                           println!("(Isv2FileDialogBox) unsupported node!");
+                       }
                        mediator.upgrade().unwrap()
                            .emit_by_name::<()>(&mediator_msg, &[&sno]);
                    }));
@@ -1113,7 +1145,8 @@ fn change_item_type(b: ScenarioNodeAttributeBox, s: SingleSelection){
                                     b.imp().mediator.borrow().clone(),
                                     store,
                                     sno,
-                                    &temp_box);
+                                    &temp_box,
+                                    b.imp().parameter.borrow().clone().unwrap());
         },
         scenario_node::Item::Scene(_) => {
             build_scene_attribute_box(sno,

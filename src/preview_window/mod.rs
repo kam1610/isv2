@@ -589,10 +589,10 @@ impl PreviewWindow {
                      cr  : &Context,
                      _w: i32, _h: i32){
         for area_item in area {
-            // mat /////////////////////////////////////////
             let (sn_source, sn_ref) = area_item;
             let sn = if let Some(ref_target) = sn_ref { ref_target } else { sn_source };
 
+            // mat /////////////////////////////////////////
             let (mut x, y, w, h) = {
                 if sn_source.get_label_type() == Some(LabelType::RefNoRect) {
                     if let Some( tuple )  = sn_source.get_mat_pos_dim_f64() { tuple } else { return; }

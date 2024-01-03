@@ -1042,6 +1042,41 @@ impl ScenarioNode {
             _ => ()
         }
     }
+    // mat_bgimg /////////////////////////////////////
+    pub fn get_mat_bgimg(&self) -> Option<PathBuf>{
+        match &(*self.value.borrow()){
+            Item::Mat(m) => {
+                if let Some(b) = &m.bgimg { Some(b.clone()) }
+                else { None }
+            },
+            _ => None,
+        }
+    }
+    pub fn set_mat_bgimg(&self, p: Option<PathBuf>){
+        match *self.value.borrow_mut(){
+            Item::Mat(ref mut m) => {
+                m.bgimg = p;
+            },
+            _ => ()
+        }
+    }
+    // mat_bg_en /////////////////////////////////////////
+    pub fn get_mat_bg_en(&self) -> Option<bool>{
+        match &(*self.value.borrow()) {
+            Item::Mat(m) => {
+                Some( m.bg_en )
+            },
+            _ => None,
+        }
+    }
+    pub fn set_mat_bg_en(&self, en: bool){
+            match *self.value.borrow_mut(){
+            Item::Mat(ref mut m) => {
+                m.bg_en = en;
+            },
+            _ => ()
+        }
+    }
     //// scene /////////////////////////////////////////////
     // scene_bgcol ////////////////////////////////////
     pub fn get_scene_bgcol(&self) -> Option<Vec<u32>>{
@@ -1317,6 +1352,8 @@ pub struct Mat {
     pub text          : String,
     #[serde(default)]
     pub bgimg         : Option<PathBuf>,
+    #[serde(default)]
+    pub bg_en         : bool,
 }
 impl Mat {
     pub fn dump(&self) {
@@ -1354,6 +1391,7 @@ impl Default for Mat{
             line_spacing  : 0.8,
             vertical      : false,
             bgimg         : None,
+            bg_en         : false,
         }
     }
 }

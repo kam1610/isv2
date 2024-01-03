@@ -35,11 +35,16 @@ use gtk::prelude::*;
 
 use std::cell::Cell;
 use std::fs::OpenOptions;
+use std::fs::File;
+use std::fs::Metadata;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::time::SystemTime;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::Hasher;
 
 use crate::drawing_util::util::CursorState;
 use crate::drawing_util::util;
@@ -443,7 +448,7 @@ impl PreviewWindow {
                                               @strong param,
                                               @strong p,
                                               @strong prev_win,
-                                              @strong status_bar=> async move {
+                                              @strong status_bar => async move {
 
             gtk::glib::timeout_future_seconds(1).await; // wait for progress window
 
@@ -486,7 +491,7 @@ impl PreviewWindow {
                             // 1. draw scene
                             Self::draw_func_for_scene(&sn, &pbuf.clone(), &scale_pbuf, target_w, target_h, &cr, None);
                             // 2. draw mats
-                            Self::draw_mats_sub(&area, &prev_win.pango_context(), &cr, 0/* w */, 0/* h */);
+                            prev_win.draw_mats_sub(&area, &prev_win.pango_context(), &cr, 0/* w */, 0/* h */);
 
                             // TODO:ディレクトリがなければ作成する
                             let mut path_buf = param.property::<PathBuf>("project_dir");
@@ -584,7 +589,8 @@ impl PreviewWindow {
         self.set_cursor_from_name( None );
     }
     // draw_mats ///////////////////////////////////////////
-    fn draw_mats_sub(area: &Vec<(Rc<ScenarioNode>, Option<Rc<ScenarioNode>>)>,
+    fn draw_mats_sub(&self,
+                     area: &Vec<(Rc<ScenarioNode>, Option<Rc<ScenarioNode>>)>,
                      pc  : &gtk::pango::Context,
                      cr  : &Context,
                      _w: i32, _h: i32){
@@ -600,30 +606,63 @@ impl PreviewWindow {
                     if let Some( tuple )  = sn.get_mat_pos_dim_f64() { tuple } else { return; }
                 }
             };
-
             let (r, g, b, a) =
                 if let Some( tuple )  = sn.get_mat_rgba_tuple_f64() { tuple } else { return; };
-            cr.set_line_width(2.0); // TODO parameterize
-            cr.set_source_rgba( r, g, b, a );
 
-            let round = sn.get_mat_r().unwrap();
-            if round <= 0 {
-                cr.rectangle(x, y, w, h);
-            } else {
-                let round = round as f64;
-                let m_pi = glib_sys::G_PI;
-                cr.move_to(x-round,   y);
-                cr.arc    (x,     y,        round,  1.0*m_pi,  1.5*m_pi);
-                cr.line_to(x+w,   y-round);
-                cr.arc    (x+w,   y,        round,  1.5*m_pi,  2.0*m_pi);
-                cr.line_to(x+w+round, y+h+r);
-                cr.arc    (x+w,   y+h,      round,  0.0*m_pi,  0.5*m_pi);
-                cr.line_to(x,     y+h+round);
-                cr.arc    (x,     y+h,      round,  0.5*m_pi,  1.0*m_pi);
-                cr.close_path();
+            if sn.get_mat_bg_en().unwrap() { // image mat
+                let param = self.imp().parameter.borrow().upgrade().unwrap();
+                let mut prj_path = param.property::<PathBuf>("project_dir");
+                if let Some(bgimg_path) = sn.get_mat_bgimg(){
+                    prj_path.push(&bgimg_path); }
+                // 存在確認
+                if prj_path.is_file(){
+                    if let Ok(bg_file) = File::open(prj_path.clone()){
+                        if let Ok(m_data) = bg_file.metadata() {
+                            if let Ok(mod_time) = m_data.modified(){
+                                if let Ok(epoch) = mod_time.duration_since(SystemTime::UNIX_EPOCH) {
+                                    let prj_path_str = prj_path.into_os_string().into_string().unwrap();
+                                    // ハッシュ生成
+                                    let mut hasher = DefaultHasher::new();
+                                    hasher.write(prj_path_str.as_bytes());
+                                    hasher.write(&epoch.as_secs().to_ne_bytes());
+                                    hasher.write(&epoch.as_nanos().to_ne_bytes());
+                                    let hash_u64 = hasher.finish();
+                                }
+                            }
+                        }
+                    }
+
+                }
+
+
+                // ハッシュ生成
+
+                // テーブル探索
+
+                // pixbuf生成
+
+            } else { // draw rectangle
+                cr.set_line_width(2.0); // TODO parameterize
+                cr.set_source_rgba( r, g, b, a );
+
+                let round = sn.get_mat_r().unwrap();
+                if round <= 0 {
+                    cr.rectangle(x, y, w, h);
+                } else {
+                    let round = round as f64;
+                    let m_pi = glib_sys::G_PI;
+                    cr.move_to(x-round,   y);
+                    cr.arc    (x,     y,        round,  1.0*m_pi,  1.5*m_pi);
+                    cr.line_to(x+w,   y-round);
+                    cr.arc    (x+w,   y,        round,  1.5*m_pi,  2.0*m_pi);
+                    cr.line_to(x+w+round, y+h+r);
+                    cr.arc    (x+w,   y+h,      round,  0.0*m_pi,  0.5*m_pi);
+                    cr.line_to(x,     y+h+round);
+                    cr.arc    (x,     y+h,      round,  0.5*m_pi,  1.0*m_pi);
+                    cr.close_path();
+                }
+                cr.fill().expect("fill draw_mats_sub");
             }
-
-            cr.fill().expect("fill draw_mats_sub");
             // text ////////////////////////////////////////
             let layout = Layout::new(pc);
 
@@ -692,7 +731,7 @@ impl PreviewWindow {
 
     }
     pub fn draw_mats(&self, cr: &Context, _w: i32, _h: i32){
-        Self::draw_mats_sub(&*self.imp().area.borrow(),
+        self.draw_mats_sub(&*self.imp().area.borrow(),
                             &self.pango_context(),
                             cr, _w, _h);
     }

@@ -5,7 +5,7 @@ use gtk::Application;
 use gtk::prelude::ApplicationExt;
 use gtk::prelude::ApplicationExtManual;
 
-const APP_ID: &str = "org.gtk.ImageScenarioViewer2";
+const APP_ID: &str = "net.fwing.isv2";
 
 // main ////////////////////////////////////////////////////
 fn main() -> glib::ExitCode {

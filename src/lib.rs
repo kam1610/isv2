@@ -536,8 +536,6 @@ pub fn build_ui(app: &Application) {
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_TOGGLE_BGIMG),     &["<Ctrl>b"]);
     app.set_accels_for_action(&("win.".to_string() + tree_manipulate::ACT_TREE_NODE_RM),  &["<Ctrl><Shift>r"]);
 
-    //app.set_accels_for_action("win.text_forward_char", &["<Alt>semicolon"]);
-
     // set attribute box after root is associated
     attribute_box.update_item_type(selection_model.clone());
 

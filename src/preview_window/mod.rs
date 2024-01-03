@@ -609,6 +609,8 @@ impl PreviewWindow {
             let (r, g, b, a) =
                 if let Some( tuple )  = sn.get_mat_rgba_tuple_f64() { tuple } else { return; };
 
+            println!("sn: {:?}", sn);
+
             if sn.get_mat_bg_en().unwrap() { // image mat
                 let param = self.imp().parameter.borrow().upgrade().unwrap();
                 let mut prj_path = param.property::<PathBuf>("project_dir");

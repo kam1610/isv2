@@ -15,7 +15,12 @@ pub mod view_actions{
     use crate::scenario_node_object::ScenarioNodeObject;
     use crate::sno_list::selection_to_sno;
 
-    pub const ACT_FOCUS_TEXT_VIEW  : &str = "select_text_view";
+    pub const ACT_FOCUS_VIEW  : &str = "select_text_view";
+    #[derive(Debug, Clone, Copy)]
+    pub enum ActFocusViewCmd {
+        TextView, TreeView,
+    }
+
     pub const ACT_CLOSE_ALL_PAGE   : &str = "view_close_all_page";
     pub const ACT_TOGGLE_BGIMG     : &str = "view_toggle_bgimg";
 
@@ -28,10 +33,15 @@ pub mod view_actions{
         Collapse,     Expand,
     }
 
-    // act_focus_text_view /////////////////////////////////
-    pub fn act_focus_text_view(w: impl WidgetExt) -> SimpleAction{
-        let act = SimpleAction::new(ACT_FOCUS_TEXT_VIEW, None);
-        act.connect_activate(move|_act, _val|{ println!("grab!"); w.grab_focus(); });
+    // act_focus_view //////////////////////////////////////
+    pub fn act_focus_view(text_view: impl WidgetExt,
+                          tree_view: impl WidgetExt) -> SimpleAction{
+        let act = SimpleAction::new(ACT_FOCUS_VIEW, Some(&VariantTy::INT32));
+        act.connect_activate(move|_act, val|{
+            let val = val.expect("expect val").get::<i32>().expect("couldn't get i32 val");
+                 if val == ActFocusViewCmd::TextView as i32 { text_view.grab_focus(); }
+            else if val == ActFocusViewCmd::TreeView as i32 { tree_view.grab_focus(); }
+        });
         act
     }
     // select_near_node ////////////////////////////////////

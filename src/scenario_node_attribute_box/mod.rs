@@ -608,10 +608,11 @@ struct Isv2FileDialogBox{
     pub enable_check       : CheckButton,
 }
 impl Isv2FileDialogBox {
-    pub fn build(root      : Root,
-                 sno       : ScenarioNodeObject,
-                 mediator  : WeakRef<Object>,
-                 parameter : Isv2Parameter
+    pub fn build(root         : Root,
+                 sno          : ScenarioNodeObject,
+                 mediator     : WeakRef<Object>,
+                 parameter    : Isv2Parameter,
+                 mediator_msg : String
     ) -> Self{
         let file_dialog_box = Box::builder().orientation(Orientation::Horizontal).build();
         let file_dialog_label = Label::new(Some("bg img"));
@@ -670,7 +671,7 @@ impl Isv2FileDialogBox {
                    @strong sno => move|chk|{
                        sno.get_node().set_scene_bg_en(chk.is_active());
                        mediator.upgrade().unwrap()
-                           .emit_by_name::<()>("scene-attribute-changed", &[&sno]);
+                           .emit_by_name::<()>(&mediator_msg, &[&sno]);
                    }));
 
         file_dialog_box.append(&file_dialog_label);
@@ -1003,7 +1004,8 @@ fn build_scene_attribute_box(sno      : ScenarioNodeObject,
     let bgimg_box = Isv2FileDialogBox::build(root.clone(),
                                              sno.clone(),
                                              mediator.clone(),
-                                             parameter.clone());
+                                             parameter.clone(),
+                                             "scene-attribute-changed".to_string());
 
     // bg color //////////////////////////////////////////
     // Isv2ColorBox will emits "mat-attribute-changed" to mediator,

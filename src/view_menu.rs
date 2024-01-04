@@ -40,7 +40,6 @@ pub mod view_actions{
         let act = SimpleAction::new(ACT_FOCUS_ATTRBOX, None);
         act.connect_activate(move|_act, _val|{
            if let Some(w) = attrbox.get_focus_tag(){
-               println!("focussing widget: {:?}", w);
                w.grab_focus(); }
         });
         act

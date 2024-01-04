@@ -14,12 +14,14 @@ pub mod view_actions{
     use crate::scenario_node::Item;
     use crate::scenario_node_object::ScenarioNodeObject;
     use crate::sno_list::selection_to_sno;
+    use crate::scenario_node_attribute_box::ScenarioNodeAttributeBox;
 
     pub const ACT_FOCUS_VIEW  : &str = "select_text_view";
     #[derive(Debug, Clone, Copy)]
     pub enum ActFocusViewCmd {
-        TextView, TreeView,
+        TextView, TreeView
     }
+    pub const ACT_FOCUS_ATTRBOX : &str = "select_attr_box";
 
     pub const ACT_CLOSE_ALL_PAGE   : &str = "view_close_all_page";
     pub const ACT_TOGGLE_BGIMG     : &str = "view_toggle_bgimg";
@@ -33,6 +35,15 @@ pub mod view_actions{
         Collapse,     Expand,
     }
 
+    // act_focus_attrbox ///////////////////////////////////
+    pub fn act_focus_attrbox(attrbox: ScenarioNodeAttributeBox) -> SimpleAction{
+        let act = SimpleAction::new(ACT_FOCUS_ATTRBOX, None);
+        act.connect_activate(move|_act, _val|{
+           if let Some(w) = attrbox.get_focus_tag(){
+               w.grab_focus(); }
+        });
+        act
+    }
     // act_focus_view //////////////////////////////////////
     pub fn act_focus_view(text_view: impl WidgetExt,
                           tree_view: impl WidgetExt) -> SimpleAction{

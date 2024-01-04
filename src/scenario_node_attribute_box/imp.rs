@@ -12,6 +12,7 @@ use gtk::gio;
 use gtk::glib;
 use gtk::prelude::StaticType;
 use gtk::subclass::prelude::*;
+use gtk::Widget;
 
 use crate::isv2_parameter::Isv2Parameter;
 use crate::operation_history::OperationHistory;
@@ -28,6 +29,7 @@ pub struct ScenarioNodeAttributeBox {
     pub(super) mediator         : RefCell<WeakRef<Object>>,
     pub(super) parameter        : RefCell<Option<Isv2Parameter>>,
     pub(super) mat_posdim_entry : WeakRef<Entry>,
+    pub(super) focus_tag        : RefCell<Option<Widget>>,
 }
 
 // The central trait for subclassing a GObject
@@ -77,6 +79,7 @@ impl Default for ScenarioNodeAttributeBox {
             mediator         : RefCell::new(WeakRef::new()),
             parameter        : RefCell::new(None),
             mat_posdim_entry : WeakRef::new(),
+            focus_tag        : RefCell::new(None),
         }
     }
 }

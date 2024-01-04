@@ -264,7 +264,7 @@ fn label_type_select_box(sno              : ScenarioNodeObject,
                          gray_list_posdim : Vec<impl IsA<Widget>>,
                          store            : gio::ListStore,
                          mediator         : WeakRef<Object>,
-                         mediator_msg     : String) -> Box{
+                         mediator_msg     : String) -> (Box, Widget) {
     let label_box        = Box::builder().orientation(Orientation::Horizontal).build();
     let label_dd_factory = SignalListItemFactory::new();
     let label_type_store = gio::ListStore::with_type( StringObject::static_type() );
@@ -338,7 +338,7 @@ fn label_type_select_box(sno              : ScenarioNodeObject,
     label_box.append(&label_dd);
     label_box.append(&label_entry);
 
-    label_box
+    (label_box, label_entry.upcast::<Widget>())
 }
 // mat_pos_dim_box /////////////////////////////////////////
 struct Isv2PosDimBox{
@@ -437,7 +437,7 @@ fn build_mat_attribute_box(b        : &ScenarioNodeAttributeBox,
                            mediator : WeakRef<Object>,
                            store    : gio::ListStore,
                            sno      : ScenarioNodeObject,
-                           temp_box : &Box){
+                           temp_box : &Box) -> Widget{
     // name ////////////////////////////////////////////////
     /*
     let name_box = Box::builder().orientation(Orientation::Horizontal).build();
@@ -575,12 +575,12 @@ fn build_mat_attribute_box(b        : &ScenarioNodeAttributeBox,
     let gray_list_posdim = vec![posdim_box.posdim_label.upcast_ref::<Widget>().clone(),
                                 posdim_box.posdim_entry.upcast_ref::<Widget>().clone()];
 
-    let label_box = label_type_select_box(sno.clone(),
-                                          gray_list,
-                                          gray_list_posdim,
-                                          store.clone(),
-                                          mediator.clone(),
-                                          "mat-attribute-changed".to_string());
+    let (label_box, focus_tag) = label_type_select_box(sno.clone(),
+                                                       gray_list,
+                                                       gray_list_posdim,
+                                                       store.clone(),
+                                                       mediator.clone(),
+                                                       "mat-attribute-changed".to_string());
 
     // apply to temp_box
     //temp_box.append(&name_box);
@@ -596,6 +596,7 @@ fn build_mat_attribute_box(b        : &ScenarioNodeAttributeBox,
     temp_box.append(&lspacing_box.hbox);
     temp_box.append(&vertical_box);
 
+    focus_tag
 }
 // Isv2FileDialogBox ///////////////////////////////////////
 struct Isv2FileDialogBox{
@@ -983,7 +984,7 @@ fn build_scene_attribute_box(sno      : ScenarioNodeObject,
                              mediator : WeakRef<Object>,
                              store    : gio::ListStore,
                              temp_box : &Box,
-                             parameter: Isv2Parameter){
+                             parameter: Isv2Parameter) -> Widget{
     // bgimg ///////////////////////////////////////////////
     let bgimg_box = Isv2FileDialogBox::build(root.clone(),
                                              sno.clone(),
@@ -1030,12 +1031,12 @@ fn build_scene_attribute_box(sno      : ScenarioNodeObject,
                          bg_color_box.color_entry.upcast_ref::<Widget>().clone(),
                          crop_editor.crop_label.upcast_ref::<Widget>().clone(),
                          crop_editor.crop_entry.upcast_ref::<Widget>().clone()];
-    let label_box = label_type_select_box(sno.clone(),
-                                          gray_list.clone(),
-                                          Vec::<Widget>::new(),
-                                          store.clone(),
-                                          mediator.clone(),
-                                          "scene-attribute-changed".to_string());
+    let (label_box, focus_tag) = label_type_select_box(sno.clone(),
+                                                       gray_list.clone(),
+                                                       Vec::<Widget>::new(),
+                                                       store.clone(),
+                                                       mediator.clone(),
+                                                       "scene-attribute-changed".to_string());
 
 
     // initial gray out accoding to label
@@ -1050,6 +1051,7 @@ fn build_scene_attribute_box(sno      : ScenarioNodeObject,
     temp_box.append(&bg_color_box.get_box());
     temp_box.append(&crop_editor.crop_box);
 
+    focus_tag
 }
 // build_page_attribute_box ////////////////////////////////
 fn build_page_attribute_box (p       : &scenario_node::Page,
@@ -1104,22 +1106,25 @@ fn change_item_type(b: ScenarioNodeAttributeBox, s: SingleSelection){
     match *sno.get_node().value.borrow(){
         scenario_node::Item::Page(ref p) => {
             build_page_attribute_box(p, store, sno, &temp_box);
+            *b.imp().focus_tag.borrow_mut() = None;
         },
         scenario_node::Item::Mat(ref _m) | scenario_node::Item::Pmat(ref _m)=> {
-            build_mat_attribute_box(&b,
-                                    b.root().unwrap(),
-                                    b.imp().mediator.borrow().clone(),
-                                    store,
-                                    sno,
-                                    &temp_box);
+            let focus_tag = build_mat_attribute_box(&b,
+                                                    b.root().unwrap(),
+                                                    b.imp().mediator.borrow().clone(),
+                                                    store,
+                                                    sno,
+                                                    &temp_box);
+            *b.imp().focus_tag.borrow_mut() = Some(focus_tag);
         },
         scenario_node::Item::Scene(_) => {
-            build_scene_attribute_box(sno,
-                                      b.root().unwrap(),
-                                      b.imp().mediator.borrow().clone(),
-                                      store,
-                                      &temp_box,
-                                      b.imp().parameter.borrow().clone().unwrap());
+            let focus_tag = build_scene_attribute_box(sno,
+                                                      b.root().unwrap(),
+                                                      b.imp().mediator.borrow().clone(),
+                                                      store,
+                                                      &temp_box,
+                                                      b.imp().parameter.borrow().clone().unwrap());
+            *b.imp().focus_tag.borrow_mut() = Some(focus_tag);
         }
         _ => ()
     }
@@ -1173,6 +1178,13 @@ impl ScenarioNodeAttributeBox {
         change_item_type(self.clone(), s);
     }
     pub fn set_mediator(&self, m: WeakRef<Object>){ *self.imp().mediator.borrow_mut() = m; }
+    pub fn get_focus_tag(&self)->Option<Widget>{
+        if let Some(w) = self.imp().focus_tag.borrow().as_ref(){
+            Some(w.clone())
+        } else {
+            None
+        }
+    }
 }
 
 impl Default for ScenarioNodeAttributeBox {

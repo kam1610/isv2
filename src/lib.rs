@@ -43,6 +43,7 @@ use gtk::gio::MenuItem;
 use gtk::gio;
 use gtk::glib::object::Object;
 use gtk::glib;
+use gtk::subclass::prelude::*;
 use gtk::prelude::*;
 
 use crate::file_menu::actions;
@@ -537,17 +538,24 @@ pub fn build_ui(app: &Application) {
         ("paste text",           text_edit::ACT_C_N_P_TEXT,  text_edit::ActCnPTextCmd::Paste        as i32, "<Ctrl>y"),];
     assign_acti32_and_accelkey(&text_edit_acts, &menu_text_edit, &app);
 
-    let focus_view_action = view_actions::act_focus_view(text_view.clone(), list_view.clone());
+    let focus_view_action = view_actions::act_focus_view(text_view.clone(),
+                                                         list_view.clone());
     window.add_action(&focus_view_action);
+
+    let focus_attr_box_action = view_actions::act_focus_attrbox(attribute_box.clone());
+    window.add_action(&focus_attr_box_action);
 
     ////////////////////////////////////////////////////////
     // shortcut ////////////////////////////////////////////
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_CLOSE_ALL_PAGE  ), &["<Ctrl>bracketright"]);
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_TOGGLE_BGIMG),     &["<Ctrl>b"]);
+
     app.set_accels_for_action(&("win.".to_string() + view_actions::ACT_FOCUS_VIEW +
                                 "(" + &(view_actions::ActFocusViewCmd::TextView as i32).to_string() + ")"), &["F2"]);
     app.set_accels_for_action(&("win.".to_string() + view_actions::ACT_FOCUS_VIEW +
                                 "(" + &(view_actions::ActFocusViewCmd::TreeView as i32).to_string() + ")"), &["F3"]);
+    app.set_accels_for_action(&("win.".to_string() + view_actions::ACT_FOCUS_ATTRBOX)                     , &["F4"]);
+
     app.set_accels_for_action(&("win.".to_string() + tree_manipulate::ACT_TREE_NODE_RM),  &["<Ctrl><Shift>r"]);
 
     app.set_accels_for_action("win.text_forward_char", &["<Alt>semicolon"]);

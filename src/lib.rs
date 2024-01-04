@@ -43,7 +43,6 @@ use gtk::gio::MenuItem;
 use gtk::gio;
 use gtk::glib::object::Object;
 use gtk::glib;
-use gtk::subclass::prelude::*;
 use gtk::prelude::*;
 
 use crate::file_menu::actions;

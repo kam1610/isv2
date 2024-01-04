@@ -181,6 +181,8 @@ fn dropdown_key_controller(dropdown: DropDown) -> EventControllerKey{
             let selected_pos_new:i32 = match key.name().unwrap().as_str() {
                 "Up"   => selected_pos - 1,
                 "Down" => selected_pos + 1,
+                "Home" => 0,
+                "End"  => (dropdown.model().unwrap().n_items() as i32) - 1,
                 _      => {prop = Propagation::Proceed;  -1}
             };
             if (0 <= selected_pos_new) && (selected_pos_new < (dropdown.model().unwrap().n_items() as i32)){

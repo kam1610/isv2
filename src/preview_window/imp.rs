@@ -34,7 +34,7 @@ pub struct PreviewWindow {
     pub(super) parameter            : RefCell<WeakRef<Isv2Parameter>>,
     pub(super) tgt_to_pwin_scale    : Cell<f64>,
     pub(super) status_bar           : RefCell<Option<Rc<StatusBar>>>,
-    pub(super) img_mat_buf          : RefCell<HashMap<usize, Pixbuf>>,
+    pub(super) img_mat_buf          : RefCell<HashMap<u64, Pixbuf>>,
 }
 
 // The central trait for subclassing a GObject

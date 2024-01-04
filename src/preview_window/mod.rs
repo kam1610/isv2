@@ -491,6 +491,7 @@ impl PreviewWindow {
                             // 1. draw scene
                             Self::draw_func_for_scene(&sn, &pbuf.clone(), &scale_pbuf, target_w, target_h, &cr, None);
                             // 2. draw mats
+                            //prev_win.draw_mats_sub(&area, &prev_win.pango_context(), &cr, 0/* w */, 0/* h */);
                             prev_win.draw_mats_sub(&area, &prev_win.pango_context(), &cr, 0/* w */, 0/* h */);
 
                             // TODO:ディレクトリがなければ作成する
@@ -609,8 +610,6 @@ impl PreviewWindow {
             let (r, g, b, a) =
                 if let Some( tuple )  = sn.get_mat_rgba_tuple_f64() { tuple } else { return; };
 
-            println!("sn: {:?}", sn);
-
             if sn.get_mat_bg_en().unwrap() { // image mat
                 let param = self.imp().parameter.borrow().upgrade().unwrap();
                 let mut prj_path = param.property::<PathBuf>("project_dir");
@@ -622,27 +621,33 @@ impl PreviewWindow {
                         if let Ok(m_data) = bg_file.metadata() {
                             if let Ok(mod_time) = m_data.modified(){
                                 if let Ok(epoch) = mod_time.duration_since(SystemTime::UNIX_EPOCH) {
-                                    let prj_path_str = prj_path.into_os_string().into_string().unwrap();
+                                    let prj_path_str = prj_path.clone().into_os_string().into_string().unwrap();
                                     // ハッシュ生成
                                     let mut hasher = DefaultHasher::new();
                                     hasher.write(prj_path_str.as_bytes());
                                     hasher.write(&epoch.as_secs().to_ne_bytes());
                                     hasher.write(&epoch.as_nanos().to_ne_bytes());
                                     let hash_u64 = hasher.finish();
+
+                                    // テーブル探索
+                                    if let Some(ref bg_pbuf) = self.imp().img_mat_buf.borrow().get(&hash_u64) {
+                                        // 見つかったので描画
+
+                                    } else {
+                                        // 見つからなかったのでロードしてから描画
+                                        if let Ok(p) = Pixbuf::from_file( prj_path ){
+                                            self.imp().img_mat_buf.borrow_mut().insert(hash_u64, p.clone());
+
+                                        }
+                                    }
+
+                                    // TODO: when the size of the cache grows,
+                                    //       delete some of it.
                                 }
                             }
                         }
                     }
-
                 }
-
-
-                // ハッシュ生成
-
-                // テーブル探索
-
-                // pixbuf生成
-
             } else { // draw rectangle
                 cr.set_line_width(2.0); // TODO parameterize
                 cr.set_source_rgba( r, g, b, a );

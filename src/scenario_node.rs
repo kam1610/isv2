@@ -1063,7 +1063,7 @@ impl ScenarioNode {
     // mat_bg_en /////////////////////////////////////////
     pub fn get_mat_bg_en(&self) -> Option<bool>{
         match &(*self.value.borrow()) {
-            Item::Mat(m) | Item::PMat(m) => {
+            Item::Mat(m) | Item::Pmat(m) => {
                 Some( m.bg_en )
             },
             _ => None,
@@ -1071,7 +1071,7 @@ impl ScenarioNode {
     }
     pub fn set_mat_bg_en(&self, en: bool){
             match *self.value.borrow_mut(){
-            Item::Mat(ref mut m) | Item::PMat(ref mut m) => {
+            Item::Mat(ref mut m) | Item::Pmat(ref mut m) => {
                 m.bg_en = en;
             },
             _ => ()

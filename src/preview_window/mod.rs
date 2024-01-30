@@ -45,6 +45,7 @@ use std::sync::Mutex;
 use std::time::SystemTime;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hasher;
+use std::collections::HashMap;
 
 use crate::drawing_util::util::CursorState;
 use crate::drawing_util::util;
@@ -589,6 +590,69 @@ impl PreviewWindow {
         self.imp().area_state.set(CursorState::None);
         self.set_cursor_from_name( None );
     }
+    // draw_bg_mat_img /////////////////////////////////////
+    fn draw_bg_mat_img(param: &Isv2Parameter,
+                       sn   : &ScenarioNode,
+                       img_mat_buf   : &mut HashMap<u64, Pixbuf>,
+                       cr   : &Context,
+                       x: f64, y: f64, w: f64, h: f64
+    ){
+        // todo: use anyhow
+
+        let mut prj_path = param.property::<PathBuf>("project_dir");
+        if let Some(bgimg_path) = sn.get_mat_bgimg(){
+            prj_path.push(&bgimg_path); }
+
+        if !prj_path.is_file(){ return; }
+        let bg_file = if let Ok(f) = File::open(prj_path.clone()) { f } else {
+            println!("(draw_bg_mat_img) not fount: {}", prj_path.display());
+            return; };
+        let m_data = if let Ok(md) = bg_file.metadata() { md } else { return; };
+        let mod_time = if let Ok(mf) = m_data.modified() { mf } else { return; };
+        let epoch = if let Ok(ep) = mod_time.duration_since(SystemTime::UNIX_EPOCH) { ep } else { return; };
+
+        // generate hash of file name with timestamp
+        let prj_path_str = prj_path.clone().into_os_string().into_string().unwrap();
+        let mut hasher = DefaultHasher::new();
+        hasher.write(prj_path_str.as_bytes());
+        hasher.write(&epoch.as_secs().to_ne_bytes());
+        hasher.write(&epoch.as_nanos().to_ne_bytes());
+        let hash_u64 = hasher.finish();
+
+
+        //let mut img_mat_buf = self.imp().img_mat_buf.borrow_mut();
+
+        if let Some(ref bg_pbuf) = img_mat_buf.get(&hash_u64) {
+            // 見つかったので描画
+
+            let scale_pbuf = {
+                if let Some(p) = bg_pbuf.scale_simple(w as i32, h as i32,
+                                                      InterpType::Bilinear) { p }
+                else { println!("scale_simple failed in {}:{}", file!(), line!()); return; }
+
+            };
+            cr.set_source_pixbuf(&scale_pbuf, x, y);
+            cr.rectangle(x, y, w, h);
+            cr.fill().expect("draw image on PreviewWindow");
+        } else {
+            // 見つからなかったのでロードしてから描画
+            if let Ok(pbuf) = Pixbuf::from_file( prj_path.clone() ){
+                // store cache
+                img_mat_buf.insert(hash_u64, pbuf.clone());
+
+                let scale_pbuf = {
+                    if let Some(p) = pbuf.scale_simple(w as i32, h as i32,
+                                                       InterpType::Bilinear) { p }
+                    else { println!("scale_simple failed in {}:{}", file!(), line!()); return; }
+
+                };
+                cr.set_source_pixbuf(&scale_pbuf, x, y);
+                cr.rectangle(x, y, w, h);
+                cr.fill().expect("draw image on PreviewWindow");
+            }
+        }
+
+    }
     // draw_mats ///////////////////////////////////////////
     fn draw_mats_sub(&self,
                      area: &Vec<(Rc<ScenarioNode>, Option<Rc<ScenarioNode>>)>,
@@ -611,6 +675,16 @@ impl PreviewWindow {
                 if let Some( tuple )  = sn.get_mat_rgba_tuple_f64() { tuple } else { return; };
 
             if sn.get_mat_bg_en().unwrap() { // image mat
+
+                Self::draw_bg_mat_img( &self.imp().parameter.borrow().upgrade().unwrap(),
+                                        sn,
+                                        &mut self.imp().img_mat_buf.borrow_mut(),
+                                        cr,
+                                        x, y, w, h
+                );
+
+
+                /*
                 let param = self.imp().parameter.borrow().upgrade().unwrap();
                 let mut prj_path = param.property::<PathBuf>("project_dir");
                 if let Some(bgimg_path) = sn.get_mat_bgimg(){
@@ -699,6 +773,7 @@ impl PreviewWindow {
                         }
                     }
                 }
+                */
             } else { // draw rectangle
                 cr.set_line_width(2.0); // TODO parameterize
                 cr.set_source_rgba( r, g, b, a );

@@ -629,17 +629,68 @@ impl PreviewWindow {
                                     hasher.write(&epoch.as_nanos().to_ne_bytes());
                                     let hash_u64 = hasher.finish();
 
+                                    { // scope for img_mat_buf
+                                        let mut img_mat_buf = self.imp().img_mat_buf.borrow_mut();
+
+                                        if let Some(ref bg_pbuf) = img_mat_buf.get(&hash_u64) {
+                                            // 見つかったので描画
+
+                                                let scale_pbuf = {
+                                                    if let Some(p) = bg_pbuf.scale_simple(w as i32, h as i32,
+                                                                                          InterpType::Bilinear) { p }
+                                                    else { println!("scale_simple failed in {}:{}", file!(), line!()); return; }
+
+                                                };
+                                                cr.set_source_pixbuf(&scale_pbuf, x, y);
+                                                cr.rectangle(x, y, w, h);
+                                                cr.fill().expect("draw image on PreviewWindow");
+                                        } else {
+                                            // 見つからなかったのでロードしてから描画
+                                            if let Ok(pbuf) = Pixbuf::from_file( prj_path.clone() ){
+                                                // store cache
+                                                img_mat_buf.insert(hash_u64, pbuf.clone());
+
+                                                let scale_pbuf = {
+                                                    if let Some(p) = pbuf.scale_simple(w as i32, h as i32,
+                                                                                       InterpType::Bilinear) { p }
+                                                    else { println!("scale_simple failed in {}:{}", file!(), line!()); return; }
+
+                                                };
+                                                cr.set_source_pixbuf(&scale_pbuf, x, y);
+                                                cr.rectangle(x, y, w, h);
+                                                cr.fill().expect("draw image on PreviewWindow");
+                                            }
+                                        }
+                                    }
+
+
+
+
+                                    /* とりあえず描画できるけど img_mat_buf の borrow_mut が失敗する */
+                                    /*
                                     // テーブル探索
                                     if let Some(ref bg_pbuf) = self.imp().img_mat_buf.borrow().get(&hash_u64) {
                                         // 見つかったので描画
 
                                     } else {
                                         // 見つからなかったのでロードしてから描画
-                                        if let Ok(p) = Pixbuf::from_file( prj_path ){
-                                            self.imp().img_mat_buf.borrow_mut().insert(hash_u64, p.clone());
+                                        if let Ok(pbuf) = Pixbuf::from_file( prj_path.clone() ){
+                                            // store cache (borrow_mut error!)
+                                            //self.imp().img_mat_buf.borrow_mut().insert(hash_u64, pbuf.clone());
+
+                                            let scale_pbuf = {
+                                                if let Some(p) = pbuf.scale_simple(w as i32, h as i32,
+                                                                                   InterpType::Bilinear) { p }
+                                                else { println!("scale_simple failed in {}:{}", file!(), line!()); return; }
+
+                                            };
+                                            cr.set_source_pixbuf(&scale_pbuf, x, y);
+                                            cr.rectangle(x, y, w, h);
+                                            cr.fill().expect("draw image on PreviewWindow");
 
                                         }
                                     }
+                                    */
 
                                     // TODO: when the size of the cache grows,
                                     //       delete some of it.

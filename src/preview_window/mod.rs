@@ -21,7 +21,7 @@ use gtk::SingleSelection;
 use gtk::TreeListRow;
 use gtk::Window;
 use gtk::cairo::Antialias;
-use gtk::cairo::Context;
+//use gtk::cairo::Context;
 use gtk::cairo::FontOptions;
 use gtk::cairo::Format;
 use gtk::cairo::ImageSurface;
@@ -46,6 +46,9 @@ use std::time::SystemTime;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hasher;
 use std::collections::HashMap;
+
+use anyhow::Context;
+use anyhow::Result;
 
 use crate::drawing_util::util::CursorState;
 use crate::drawing_util::util;
@@ -73,7 +76,7 @@ impl PreviewWindow {
                            scale_pbuf : &Option<Pixbuf>,
                            target_w   : i32,
                            target_h   : i32,
-                           cr         : &gtk::cairo::Context,
+                           cr         : &cairo::Context,
                            param      : Option<Isv2Parameter>
     ){
         if let Some(s) = ScenarioNode::get_belong_scene(sn){
@@ -487,7 +490,7 @@ impl PreviewWindow {
                                 if let Ok(sf) = ImageSurface::create(Format::ARgb32, target_w, target_h) { sf }
                                 else { println!("(export_images) creating surface failed"); return; } };
                             let cr = {
-                                if let Ok(ctx) = Context::new(&surface) { ctx }
+                                if let Ok(ctx) = cairo::Context::new(&surface) { ctx }
                                 else { println!("(export_images) creating context failed"); return; } };
                             // 1. draw scene
                             Self::draw_func_for_scene(&sn, &pbuf.clone(), &scale_pbuf, target_w, target_h, &cr, None);
@@ -591,25 +594,28 @@ impl PreviewWindow {
         self.set_cursor_from_name( None );
     }
     // draw_bg_mat_img /////////////////////////////////////
-    fn draw_bg_mat_img(param: &Isv2Parameter,
-                       sn   : &ScenarioNode,
-                       img_mat_buf   : &mut HashMap<u64, Pixbuf>,
-                       cr   : &Context,
+    fn draw_bg_mat_img(param       : &Isv2Parameter,
+                       sn          : &ScenarioNode,
+                       img_mat_buf : &mut HashMap<u64, Pixbuf>,
+                       cr          : &cairo::Context,
                        x: f64, y: f64, w: f64, h: f64
-    ){
+    ) -> Result<()>{
         // todo: use anyhow
 
         let mut prj_path = param.property::<PathBuf>("project_dir");
         if let Some(bgimg_path) = sn.get_mat_bgimg(){
             prj_path.push(&bgimg_path); }
 
-        if !prj_path.is_file(){ return; }
-        let bg_file = if let Ok(f) = File::open(prj_path.clone()) { f } else {
-            println!("(draw_bg_mat_img) not fount: {}", prj_path.display());
-            return; };
-        let m_data = if let Ok(md) = bg_file.metadata() { md } else { return; };
-        let mod_time = if let Ok(mf) = m_data.modified() { mf } else { return; };
-        let epoch = if let Ok(ep) = mod_time.duration_since(SystemTime::UNIX_EPOCH) { ep } else { return; };
+        if !prj_path.is_file(){ anyhow::bail!("prj_path is not file"); }
+
+        let bg_file = File::open(prj_path.clone())
+            .with_context(||format!("opening {prj_path:?} failed"))?;
+        let m_data = bg_file.metadata()
+            .with_context(||format!("obtaining metadata of {prj_path:?} failed"))?;
+        let mod_time = m_data.modified()
+            .with_context(||format!("getting mod_tile of {prj_path:?} failed"))?;
+        let epoch = mod_time.duration_since(SystemTime::UNIX_EPOCH)
+            .with_context(||format!("getting epoch of {prj_path:?} failed"))?;
 
         // generate hash of file name with timestamp
         let prj_path_str = prj_path.clone().into_os_string().into_string().unwrap();
@@ -621,28 +627,30 @@ impl PreviewWindow {
 
         let bg_buf_sub;
         let bg_pbuf = if let Some(b) = img_mat_buf.get(&hash_u64){ b } else {
-            if let Ok(ref pbuf) = Pixbuf::from_file( prj_path.clone() ){
-                img_mat_buf.insert(hash_u64, pbuf.clone());
-                bg_buf_sub = pbuf.clone();
-                &bg_buf_sub
-            } else {
-                return;
-            }
+            let ref pbuf = Pixbuf::from_file( prj_path.clone() )
+                .with_context(||format!("creating pixbuf of {prj_path:?} failed"))?;
+            img_mat_buf.insert(hash_u64, pbuf.clone());
+            bg_buf_sub = pbuf.clone();
+            &bg_buf_sub
         };
+        // TODO: resize cache mount of img_mat_buf when it becomes too large
+
         let scale_pbuf = {
             if let Some(p) = bg_pbuf.scale_simple(w as i32, h as i32,
                                                   InterpType::Bilinear) { p }
-            else { println!("scale_simple failed in {}:{}", file!(), line!()); return; }
+            else { println!("scale_simple failed in {}:{}", file!(), line!()); anyhow::bail!(""); }
         };
         cr.set_source_pixbuf(&scale_pbuf, x, y);
         cr.rectangle(x, y, w, h);
         cr.fill().expect("draw image on PreviewWindow");
+
+        Ok(())
     }
     // draw_mats ///////////////////////////////////////////
     fn draw_mats_sub(&self,
                      area: &Vec<(Rc<ScenarioNode>, Option<Rc<ScenarioNode>>)>,
                      pc  : &gtk::pango::Context,
-                     cr  : &Context,
+                     cr  : &cairo::Context,
                      _w: i32, _h: i32){
         for area_item in area {
             let (sn_source, sn_ref) = area_item;
@@ -660,12 +668,13 @@ impl PreviewWindow {
                 if let Some( tuple )  = sn.get_mat_rgba_tuple_f64() { tuple } else { return; };
 
             if sn.get_mat_bg_en().unwrap() { // image mat
-                Self::draw_bg_mat_img( &self.imp().parameter.borrow().upgrade().unwrap(),
-                                        sn,
-                                        &mut self.imp().img_mat_buf.borrow_mut(),
-                                        cr,
-                                        x, y, w, h
-                );
+                if let Err(e) = Self::draw_bg_mat_img( &self.imp().parameter.borrow().upgrade().unwrap(),
+                                                        sn,
+                                                        &mut self.imp().img_mat_buf.borrow_mut(),
+                                                        cr,
+                                                        x, y, w, h) {
+                    println!("{:?}", e);
+                }
             } else { // draw rectangle
                 cr.set_line_width(2.0); // TODO parameterize
                 cr.set_source_rgba( r, g, b, a );
@@ -755,7 +764,7 @@ impl PreviewWindow {
         }
 
     }
-    pub fn draw_mats(&self, cr: &Context, _w: i32, _h: i32){
+    pub fn draw_mats(&self, cr: &cairo::Context, _w: i32, _h: i32){
         self.draw_mats_sub(&*self.imp().area.borrow(),
                             &self.pango_context(),
                             cr, _w, _h);

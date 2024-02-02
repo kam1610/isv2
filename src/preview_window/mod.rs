@@ -619,39 +619,24 @@ impl PreviewWindow {
         hasher.write(&epoch.as_nanos().to_ne_bytes());
         let hash_u64 = hasher.finish();
 
-
-        //let mut img_mat_buf = self.imp().img_mat_buf.borrow_mut();
-
-        if let Some(ref bg_pbuf) = img_mat_buf.get(&hash_u64) {
-            // 見つかったので描画
-
-            let scale_pbuf = {
-                if let Some(p) = bg_pbuf.scale_simple(w as i32, h as i32,
-                                                      InterpType::Bilinear) { p }
-                else { println!("scale_simple failed in {}:{}", file!(), line!()); return; }
-
-            };
-            cr.set_source_pixbuf(&scale_pbuf, x, y);
-            cr.rectangle(x, y, w, h);
-            cr.fill().expect("draw image on PreviewWindow");
-        } else {
-            // 見つからなかったのでロードしてから描画
-            if let Ok(pbuf) = Pixbuf::from_file( prj_path.clone() ){
-                // store cache
+        let bg_buf_sub;
+        let bg_pbuf = if let Some(b) = img_mat_buf.get(&hash_u64){ b } else {
+            if let Ok(ref pbuf) = Pixbuf::from_file( prj_path.clone() ){
                 img_mat_buf.insert(hash_u64, pbuf.clone());
-
-                let scale_pbuf = {
-                    if let Some(p) = pbuf.scale_simple(w as i32, h as i32,
-                                                       InterpType::Bilinear) { p }
-                    else { println!("scale_simple failed in {}:{}", file!(), line!()); return; }
-
-                };
-                cr.set_source_pixbuf(&scale_pbuf, x, y);
-                cr.rectangle(x, y, w, h);
-                cr.fill().expect("draw image on PreviewWindow");
+                bg_buf_sub = pbuf.clone();
+                &bg_buf_sub
+            } else {
+                return;
             }
-        }
-
+        };
+        let scale_pbuf = {
+            if let Some(p) = bg_pbuf.scale_simple(w as i32, h as i32,
+                                                  InterpType::Bilinear) { p }
+            else { println!("scale_simple failed in {}:{}", file!(), line!()); return; }
+        };
+        cr.set_source_pixbuf(&scale_pbuf, x, y);
+        cr.rectangle(x, y, w, h);
+        cr.fill().expect("draw image on PreviewWindow");
     }
     // draw_mats ///////////////////////////////////////////
     fn draw_mats_sub(&self,
@@ -675,105 +660,12 @@ impl PreviewWindow {
                 if let Some( tuple )  = sn.get_mat_rgba_tuple_f64() { tuple } else { return; };
 
             if sn.get_mat_bg_en().unwrap() { // image mat
-
                 Self::draw_bg_mat_img( &self.imp().parameter.borrow().upgrade().unwrap(),
                                         sn,
                                         &mut self.imp().img_mat_buf.borrow_mut(),
                                         cr,
                                         x, y, w, h
                 );
-
-
-                /*
-                let param = self.imp().parameter.borrow().upgrade().unwrap();
-                let mut prj_path = param.property::<PathBuf>("project_dir");
-                if let Some(bgimg_path) = sn.get_mat_bgimg(){
-                    prj_path.push(&bgimg_path); }
-                // 存在確認
-                if prj_path.is_file(){
-                    if let Ok(bg_file) = File::open(prj_path.clone()){
-                        if let Ok(m_data) = bg_file.metadata() {
-                            if let Ok(mod_time) = m_data.modified(){
-                                if let Ok(epoch) = mod_time.duration_since(SystemTime::UNIX_EPOCH) {
-                                    let prj_path_str = prj_path.clone().into_os_string().into_string().unwrap();
-                                    // ハッシュ生成
-                                    let mut hasher = DefaultHasher::new();
-                                    hasher.write(prj_path_str.as_bytes());
-                                    hasher.write(&epoch.as_secs().to_ne_bytes());
-                                    hasher.write(&epoch.as_nanos().to_ne_bytes());
-                                    let hash_u64 = hasher.finish();
-
-                                    { // scope for img_mat_buf
-                                        let mut img_mat_buf = self.imp().img_mat_buf.borrow_mut();
-
-                                        if let Some(ref bg_pbuf) = img_mat_buf.get(&hash_u64) {
-                                            // 見つかったので描画
-
-                                                let scale_pbuf = {
-                                                    if let Some(p) = bg_pbuf.scale_simple(w as i32, h as i32,
-                                                                                          InterpType::Bilinear) { p }
-                                                    else { println!("scale_simple failed in {}:{}", file!(), line!()); return; }
-
-                                                };
-                                                cr.set_source_pixbuf(&scale_pbuf, x, y);
-                                                cr.rectangle(x, y, w, h);
-                                                cr.fill().expect("draw image on PreviewWindow");
-                                        } else {
-                                            // 見つからなかったのでロードしてから描画
-                                            if let Ok(pbuf) = Pixbuf::from_file( prj_path.clone() ){
-                                                // store cache
-                                                img_mat_buf.insert(hash_u64, pbuf.clone());
-
-                                                let scale_pbuf = {
-                                                    if let Some(p) = pbuf.scale_simple(w as i32, h as i32,
-                                                                                       InterpType::Bilinear) { p }
-                                                    else { println!("scale_simple failed in {}:{}", file!(), line!()); return; }
-
-                                                };
-                                                cr.set_source_pixbuf(&scale_pbuf, x, y);
-                                                cr.rectangle(x, y, w, h);
-                                                cr.fill().expect("draw image on PreviewWindow");
-                                            }
-                                        }
-                                    }
-
-
-
-
-                                    /* とりあえず描画できるけど img_mat_buf の borrow_mut が失敗する */
-                                    /*
-                                    // テーブル探索
-                                    if let Some(ref bg_pbuf) = self.imp().img_mat_buf.borrow().get(&hash_u64) {
-                                        // 見つかったので描画
-
-                                    } else {
-                                        // 見つからなかったのでロードしてから描画
-                                        if let Ok(pbuf) = Pixbuf::from_file( prj_path.clone() ){
-                                            // store cache (borrow_mut error!)
-                                            //self.imp().img_mat_buf.borrow_mut().insert(hash_u64, pbuf.clone());
-
-                                            let scale_pbuf = {
-                                                if let Some(p) = pbuf.scale_simple(w as i32, h as i32,
-                                                                                   InterpType::Bilinear) { p }
-                                                else { println!("scale_simple failed in {}:{}", file!(), line!()); return; }
-
-                                            };
-                                            cr.set_source_pixbuf(&scale_pbuf, x, y);
-                                            cr.rectangle(x, y, w, h);
-                                            cr.fill().expect("draw image on PreviewWindow");
-
-                                        }
-                                    }
-                                    */
-
-                                    // TODO: when the size of the cache grows,
-                                    //       delete some of it.
-                                }
-                            }
-                        }
-                    }
-                }
-                */
             } else { // draw rectangle
                 cr.set_line_width(2.0); // TODO parameterize
                 cr.set_source_rgba( r, g, b, a );

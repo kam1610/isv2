@@ -436,6 +436,12 @@ pub fn build_ui(app: &Application) {
                                                  Some( &("app.".to_string() + view_actions::ACT_CLOSE_ALL_PAGE) ));
     menu_node_view.append_item(&menu_item_close_all_page);
 
+    let act_close_all_scene = view_actions::act_close_all_scene(selection_model.clone());
+    app.add_action(&act_close_all_scene);
+    let menu_item_close_all_scene = MenuItem::new(Some("CloseAll_Scene"),
+                                                  Some( &("app.".to_string() + view_actions::ACT_CLOSE_ALL_SCENE) ));
+    menu_node_view.append_item(&menu_item_close_all_scene);
+
     // toggle_bgimg ////////////////////////////////////
     let act_toggle_bgimg = view_actions::act_toggle_bgimg(param.clone(), mediator.clone(), selection_model.clone());
     app.add_action(&act_toggle_bgimg);

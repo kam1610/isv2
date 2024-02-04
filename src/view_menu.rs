@@ -24,6 +24,7 @@ pub mod view_actions{
     pub const ACT_FOCUS_ATTRBOX : &str = "select_attr_box";
 
     pub const ACT_CLOSE_ALL_PAGE   : &str = "view_close_all_page";
+    pub const ACT_CLOSE_ALL_SCENE  : &str = "view_close_all_scene";
     pub const ACT_TOGGLE_BGIMG     : &str = "view_toggle_bgimg";
 
     pub const ACT_TREE_NODE_SEL : &str = "tree_node_sel";
@@ -149,6 +150,26 @@ pub mod view_actions{
             }
         });
 
+        act
+    }
+    // act_close_all_scene //////////////////////////////////
+    pub fn act_close_all_scene(sel : SingleSelection) -> SimpleAction{
+        let act = SimpleAction::new(ACT_CLOSE_ALL_SCENE, None);
+        act.connect_activate(move|_act, _val|{
+            let mut n = 0;
+            loop{
+                if ((sel.n_items() as i32)-1) < n { break; }
+                let row = sel.item(n as u32).unwrap().downcast::<TreeListRow>().expect("row");
+                let sno = row.item().and_downcast::<ScenarioNodeObject>().expect("sno is expd");
+                match &*sno.get_node().value.borrow() {
+                    Item::Group    => { row.set_expanded(true ); },
+                    Item::Scene(_) => { row.set_expanded(false); },
+                    Item::Page(_)  => { row.set_expanded(false); },
+                    _ => ()
+                }
+                n+=1;
+            }
+        });
         act
     }
     // act_toggle_bgimg ////////////////////////////////////

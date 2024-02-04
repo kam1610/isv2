@@ -803,7 +803,6 @@ impl ScenarioNode {
             _ => ()
         }
     }
-    // mat_rgba ////////////////////////////////////////////
     pub fn get_mat_pos_dim_f64(&self) -> Option<(f64, f64, f64, f64)>{
         if let Some((x, y, w, h)) = self.get_mat_pos_dim() {
             Some((x as f64, y as f64, w as f64, h as f64))
@@ -811,6 +810,7 @@ impl ScenarioNode {
             None
         }
     }
+    // mat_rgba ////////////////////////////////////////////
     pub fn get_mat_rgba(&self) -> Option<Vec<u32>>{
         match &(*self.value.borrow()){
             Item::Mat(m) | Item::Pmat(m) => {
@@ -1077,6 +1077,23 @@ impl ScenarioNode {
             _ => ()
         }
     }
+    // mat_text_offset /////////////////////////////////////
+    pub fn get_mat_text_pos(&self) -> Option<(i32, i32)>{
+        match &(*self.value.borrow()){
+            Item::Mat(m) | Item::Pmat(m) => {
+                Some( (m.pos.x, m.pos.y) )
+            },
+            _ => None,
+        }
+    }
+    pub fn set_mat_text_pos(&self, x: i32, y: i32){
+        match *self.value.borrow_mut(){
+            Item::Mat(ref mut m) | Item::Pmat(ref mut m) => {
+                m.pos.x = x; m.pos.y = y;
+            },
+            _ => ()
+        }
+    }
     //// scene /////////////////////////////////////////////
     // scene_bgcol ////////////////////////////////////
     pub fn get_scene_bgcol(&self) -> Option<Vec<u32>>{
@@ -1233,7 +1250,11 @@ pub struct Position {
     pub y : i32,
 }
 impl Default for Position{
-    fn default() -> Self{ Self{x: 0, y: 0} } }
+    fn default() -> Self{ Self{x: 0, y: 0} }
+}
+impl Position{
+    fn from_xy(x: i32, y: i32) -> Self{ Self{x, y} }
+}
 // Dimension ///////////////////////////////////////////////
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Dimension {
@@ -1354,6 +1375,8 @@ pub struct Mat {
     pub bgimg         : Option<PathBuf>,
     #[serde(default)]
     pub bg_en         : bool,
+    #[serde(default)]
+    pub text_pos      : Position,
 }
 impl Mat {
     pub fn dump(&self) {
@@ -1392,6 +1415,7 @@ impl Default for Mat{
             vertical      : false,
             bgimg         : None,
             bg_en         : false,
+            text_pos      : Position::from_xy(0, 0),
         }
     }
 }

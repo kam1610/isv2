@@ -392,6 +392,45 @@ impl Isv2PosDimBox{
     }
     pub fn get_box(&self) -> Box { self.posdim_box.clone() }
 }
+struct Isv2PosBox{
+    pub pos_box   : Box,
+    pub pos_label : Label,
+    pub pos_entry : Entry
+}
+impl Isv2PosBox{
+    pub fn build(sno      : ScenarioNodeObject,
+                 store    : gio::ListStore,
+                 mediator : WeakRef<Object>) -> Self{
+        let pos_box = Box::builder().orientation(Orientation::Horizontal).build();
+        let pos_label = Label::new(Some("text pos from top left(x,y)"));
+        let (x, y) = sno.get_node().get_mat_text_pos().unwrap();
+        let pos_str = format!("{},{}", x, y);
+        let pos_entry = Entry::builder().buffer(&EntryBuffer::new(Some(pos_str))).build();
+        pos_entry.connect_changed( clone!( @strong  sno,
+                                            @strong store,
+                                            @strong mediator => move |pe| {
+                                                let t = pe.text();
+                                                let v:Vec<&str> = t.split(",").collect();
+                                                if v.len() != 2 { return; }
+                                                if let ( Ok(x), Ok(y)) =
+                                                    (i32::from_str_radix(v[0], 10),
+                                                     i32::from_str_radix(v[1], 10)) {
+                                                        sno.get_node().set_mat_text_pos(x, y);
+                                                        store.items_changed(sno.get_seq() as u32, 1, 1);
+                                                        mediator.upgrade().unwrap().emit_by_name::<()>("mat-attribute-changed", &[&sno]);
+                                                    }
+                                            }));
+        pos_box.append(&pos_label);
+        pos_box.append(&pos_entry);
+
+        if sno.get_node().get_label_type() == Some(LabelType::Ref){
+            set_css_grayout(vec![pos_label.clone().upcast::<Widget>(),
+                                 pos_entry.clone().upcast::<Widget>() ],
+                            true);
+        }
+        Self{ pos_box, pos_label, pos_entry }
+    }
+}
 // float_entry_box /////////////////////////////////////////
 struct Isv2FloatEntryBox {
     pub hbox  : Box,
@@ -467,6 +506,9 @@ fn build_mat_attribute_box(b         : &ScenarioNodeAttributeBox,
                                                  |s, c| { s.get_node().set_mat_rgba(c) } ));
     // posdim //////////////////////////////////////////////
     let posdim_box = Isv2PosDimBox::build(b, sno.clone(), store.clone(), mediator.clone());
+    // text pos ///////////////////////////////////////////
+    let text_pos_box = Isv2PosBox::build(sno.clone(), store.clone(), mediator.clone());
+
     // round ///////////////////////////////////////////////
     let round_box   = Box::builder().orientation(Orientation::Horizontal).build();
     let round_label = Label::new(Some("round"));
@@ -584,7 +626,9 @@ fn build_mat_attribute_box(b         : &ScenarioNodeAttributeBox,
                          outl_box.entry.upcast_ref::<Widget>().clone(),
                          lspacing_box.label.upcast_ref::<Widget>().clone(),
                          lspacing_box.entry.upcast_ref::<Widget>().clone(),
-                         vertical_label.upcast_ref::<Widget>().clone()];
+                         vertical_label.upcast_ref::<Widget>().clone(),
+                         text_pos_box.pos_label.upcast_ref::<Widget>().clone(),
+                         text_pos_box.pos_entry.upcast_ref::<Widget>().clone()];
     let gray_list_posdim = vec![posdim_box.posdim_label.upcast_ref::<Widget>().clone(),
                                 posdim_box.posdim_entry.upcast_ref::<Widget>().clone()];
 
@@ -602,6 +646,7 @@ fn build_mat_attribute_box(b         : &ScenarioNodeAttributeBox,
     temp_box.append(&label_box);
     temp_box.append(&posdim_box.get_box());
     temp_box.append(&round_box);
+    temp_box.append(&text_pos_box.pos_box);
     temp_box.append(&font_dialog_button);
     temp_box.append(&font_color_box.get_box());
     temp_box.append(&font_weight_box);

@@ -1081,7 +1081,15 @@ impl ScenarioNode {
     pub fn get_mat_text_pos(&self) -> Option<(i32, i32)>{
         match &(*self.value.borrow()){
             Item::Mat(m) | Item::Pmat(m) => {
-                Some( (m.pos.x, m.pos.y) )
+                Some( (m.text_pos.x, m.text_pos.y) )
+            },
+            _ => None,
+        }
+    }
+    pub fn get_mat_text_pos_f64(&self) -> Option<(f64, f64)>{
+        match &(*self.value.borrow()){
+            Item::Mat(m) | Item::Pmat(m) => {
+                Some( (m.text_pos.x as f64, m.text_pos.y as f64) )
             },
             _ => None,
         }
@@ -1089,7 +1097,7 @@ impl ScenarioNode {
     pub fn set_mat_text_pos(&self, x: i32, y: i32){
         match *self.value.borrow_mut(){
             Item::Mat(ref mut m) | Item::Pmat(ref mut m) => {
-                m.pos.x = x; m.pos.y = y;
+                m.text_pos.x = x; m.text_pos.y = y;
             },
             _ => ()
         }

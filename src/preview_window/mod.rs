@@ -657,13 +657,22 @@ impl PreviewWindow {
             let sn = if let Some(ref_target) = sn_ref { ref_target } else { sn_source };
 
             // mat /////////////////////////////////////////
-            let (mut x, y, w, h) = {
+            let (mut x, mut y, w, h) = {
                 if sn_source.get_label_type() == Some(LabelType::RefNoRect) {
                     if let Some( tuple )  = sn_source.get_mat_pos_dim_f64() { tuple } else { return; }
                 } else {
                     if let Some( tuple )  = sn.get_mat_pos_dim_f64() { tuple } else { return; }
                 }
             };
+            let (pad_x, pad_y) = {
+                if sn_source.get_label_type() == Some(LabelType::RefNoRect) {
+                    if let Some( tuple )  = sn_source.get_mat_text_pos_f64() { tuple } else { return; }
+                } else {
+                    if let Some( tuple )  = sn.get_mat_text_pos_f64() { tuple } else { return; }
+                }
+            };
+
+
             let (r, g, b, a) =
                 if let Some( tuple )  = sn.get_mat_rgba_tuple_f64() { tuple } else { return; };
 
@@ -736,7 +745,13 @@ impl PreviewWindow {
 
             // text mat
             if sn.get_mat_vertical().unwrap() {
-                x = x + w; }
+                x = x + w - pad_x;
+            }
+            else {
+                x = x + pad_x;
+            }
+            y = y + pad_y;
+
             cr.set_line_join(cairo::LineJoin::Round);
 
             cr.save().expect("save context before stroke text");

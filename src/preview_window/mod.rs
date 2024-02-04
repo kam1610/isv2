@@ -45,6 +45,7 @@ use std::sync::Mutex;
 use std::time::SystemTime;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hasher;
+use std::time::Duration;
 
 use crate::drawing_util::util::CursorState;
 use crate::drawing_util::util;
@@ -513,7 +514,7 @@ impl PreviewWindow {
                             status_bar.set_status(&format!("{}/{}:{}", img_seq+1, total_num, path_buf.to_str().unwrap()));
 
                             sender.send(false).await.expect("The channel needs to be open.");
-                            //gtk::glib::timeout_future_seconds(1).await; // for async debug
+                            gtk::glib::timeout_future(Duration::from_millis(50)).await; // for async debug
 
                             img_seq+= 1;
                         },

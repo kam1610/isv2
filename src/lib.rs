@@ -538,6 +538,7 @@ pub fn build_ui(app: &Application) {
         ("kill word",            text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::KillWord     as i32, "<Alt>d" ),
         ("new line",             text_edit::ACT_INS_TEXT,    text_edit::ActInsTextCmd::NewLine      as i32, "<Ctrl>m"),
         ("open line",            text_edit::ACT_INS_TEXT,    text_edit::ActInsTextCmd::OpenLine     as i32, "<Ctrl>o"),
+        ("dakuten",              text_edit::ACT_INS_TEXT,    text_edit::ActInsTextCmd::Dakuten      as i32, "<Ctrl>quoteright"),
         ("copy text",            text_edit::ACT_C_N_P_TEXT,  text_edit::ActCnPTextCmd::Copy         as i32, "<Alt>w"),
         ("cut text",             text_edit::ACT_C_N_P_TEXT,  text_edit::ActCnPTextCmd::Cut          as i32, "<Ctrl>w"),
         ("paste text",           text_edit::ACT_C_N_P_TEXT,  text_edit::ActCnPTextCmd::Paste        as i32, "<Ctrl>y"),];

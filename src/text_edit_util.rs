@@ -28,7 +28,7 @@ pub mod text_edit{
     pub const ACT_INS_TEXT : &str = "ins_text";
     #[derive(Debug, Clone, Copy)]
     pub enum ActInsTextCmd {
-        NewLine, OpenLine
+        NewLine, OpenLine, Dakuten
     }
 
     pub const ACT_C_N_P_TEXT : &str = "c_n_p_text";
@@ -116,6 +116,9 @@ pub mod text_edit{
                     view.emit_insert_at_cursor("\n");
                     view.emit_move_cursor(MovementStep::DisplayLines, -1, false);
                     view.emit_move_cursor(MovementStep::DisplayLineEnds, 1, false);
+                },
+                x if x == ActInsTextCmd::Dakuten as i32 => {
+                    view.emit_insert_at_cursor("゛");
                 },
                 _ => { println!("(act_insert_text) unexpected val: {}", val); }
             }

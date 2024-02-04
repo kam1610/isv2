@@ -15,6 +15,7 @@ pub mod text_edit{
         NextLine,   PrevLine,
         NextLine3,  PrevLine3,
         BegLine,    EndLine,
+        BegBuff,    EndBuff,
     }
 
     pub const ACT_DEL_TEXT : &str = "del_text";
@@ -55,6 +56,8 @@ pub mod text_edit{
                 x if x == ActCursorCmd::PrevLine3 as i32 => {(MovementStep::DisplayLines,    -3)},
                 x if x == ActCursorCmd::BegLine   as i32 => {(MovementStep::DisplayLineEnds, -1)},
                 x if x == ActCursorCmd::EndLine   as i32 => {(MovementStep::DisplayLineEnds,  1)},
+                x if x == ActCursorCmd::BegBuff   as i32 => {(MovementStep::BufferEnds,      -1)},
+                x if x == ActCursorCmd::EndBuff   as i32 => {(MovementStep::BufferEnds,       1)},
                 _ => { println!("(act_cursor_move) unexpected val: {}", val); return; }
             };
 

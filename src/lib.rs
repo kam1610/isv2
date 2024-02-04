@@ -531,6 +531,8 @@ pub fn build_ui(app: &Application) {
         ("prev line 3",          text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::PrevLine3     as i32, "<Alt>0"),
         ("beginning line",       text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::BegLine       as i32, "<Ctrl>a"),
         ("end line",             text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::EndLine       as i32, "<Ctrl>e"),
+        ("beginning buffer",     text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::BegBuff       as i32, "<Alt>leftanglebracket"),
+        ("end buffer",           text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::EndBuff       as i32, "<Alt>rightanglebracket"),
         ("delete backward char", text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::DelBackChar  as i32, "<Ctrl>h"),
         ("delete char",          text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::DelChar      as i32, "<Ctrl>d"),
         ("kill line",            text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::KillLine     as i32, "<Ctrl>k"),

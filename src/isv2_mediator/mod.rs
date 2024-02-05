@@ -25,6 +25,10 @@ impl Isv2Mediator{
                  mediator.imp().attr_box.borrow().emit_by_name::<()>("sno-selected", &[&s]);
                  mediator.imp().preview_window.borrow().emit_by_name::<()>("sno-selected", &[&s]);
                  mediator.imp().node_add_box.borrow().emit_by_name::<()>("sno-selected", &[&s]);
+                 let full_preview = &*mediator.imp().full_preview_window.borrow();
+                 if let Some(full_preview) = full_preview {
+                     full_preview.emit_by_name::<()>("sno-selected", &[&s]);
+                 }
              })
          );
         // mat-attribute-changed ///////////////////////////

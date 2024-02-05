@@ -7,7 +7,11 @@ pub mod view_actions{
     use gtk::prelude::ListModelExt;
     use gtk::prelude::ObjectExt;
     use gtk::glib::VariantTy;
+    use gtk::Window;
     use gtk::prelude::*;
+    use gtk::EventControllerKey;
+    use gtk::glib::Propagation;
+    use gtk::glib::clone;
 
     use crate::isv2_mediator::Isv2Mediator;
     use crate::isv2_parameter::Isv2Parameter;
@@ -15,6 +19,7 @@ pub mod view_actions{
     use crate::scenario_node_object::ScenarioNodeObject;
     use crate::sno_list::selection_to_sno;
     use crate::scenario_node_attribute_box::ScenarioNodeAttributeBox;
+    use crate::preview_window::PreviewWindow;
 
     pub const ACT_FOCUS_VIEW  : &str = "select_text_view";
     #[derive(Debug, Clone, Copy)]
@@ -35,6 +40,34 @@ pub mod view_actions{
         Collapse,     Expand,
     }
 
+    pub const ACT_PREVIEW : &str = "preview";
+    // act_preview /////////////////////////////////////////
+    pub fn act_preview(preview_window: PreviewWindow,
+                       sel: SingleSelection) -> SimpleAction{
+        let act = SimpleAction::new(ACT_PREVIEW, None);
+        act.connect_activate(move|_act, _val|{
+            let win = Window::builder().title( String::from("preview") ).modal(true).build();
+            win.set_child(Some(&preview_window));
+            win.set_decorated(false);
+
+            //TODO: set key controller, and set size
+
+            let kctrl = EventControllerKey::new();
+            kctrl.connect_key_pressed(clone!(@strong sel => move|_ctrl, key, _code, _state|{
+                match key.name().unwrap().as_str() {
+                    "Up"   => { select_near_page(&sel, false ); },
+                    "Down" => { select_near_page(&sel, true  ); },
+                    _      => { println!("key={}", key) },
+                };
+                Propagation::Stop
+            }));
+            win.add_controller(kctrl);
+
+
+            win.present();
+        });
+        act
+    }
     // act_focus_attrbox ///////////////////////////////////
     pub fn act_focus_attrbox(attrbox: ScenarioNodeAttributeBox) -> SimpleAction{
         let act = SimpleAction::new(ACT_FOCUS_ATTRBOX, None);

@@ -18,17 +18,19 @@ use crate::scenario_node_object::ScenarioNodeObject;
 #[properties(wrapper_type = super::Isv2Mediator)]
 pub struct Isv2Mediator {
     #[property(get, set)]
-    pub(super) list_view          : RefCell<Object>,
+    pub(super) list_view           : RefCell<Object>,
     #[property(get, set)]
-    pub(super) attr_box           : RefCell<Object>,
+    pub(super) attr_box            : RefCell<Object>,
     #[property(get, set)]
-    pub(super) preview_window     : RefCell<Object>,
+    pub(super) preview_window      : RefCell<Object>,
     #[property(get, set)]
-    pub(super) parameter          : RefCell<Object>,
+    pub(super) parameter           : RefCell<Object>,
     #[property(get, set)]
-    pub(super) scenario_text_view : RefCell<Object>,
+    pub(super) scenario_text_view  : RefCell<Object>,
     #[property(get, set)]
-    pub(super) node_add_box       : RefCell<Object>,
+    pub(super) node_add_box        : RefCell<Object>,
+    #[property(get, set)]
+    pub(super) full_preview_window : RefCell<Option<Object>>,
 }
 
 // The central trait for subclassing a GObject
@@ -67,6 +69,9 @@ impl ObjectImpl for Isv2Mediator {
                 .build(),
                  Signal::builder("unset-sno")
                 .param_types([ScenarioNodeObject::static_type()])
+                .build(),
+                 Signal::builder("close-full-screen-preview")
+                .param_types([ScenarioNodeObject::static_type()])
                 .build()
             ]
         });
@@ -84,6 +89,7 @@ impl Default for Isv2Mediator{
             parameter          : RefCell::new(Object::with_type(glib::types::Type::OBJECT)),
             scenario_text_view : RefCell::new(Object::with_type(glib::types::Type::OBJECT)),
             node_add_box       : RefCell::new(Object::with_type(glib::types::Type::OBJECT)),
+            full_preview_window: RefCell::new(None),
         }
     }
 }

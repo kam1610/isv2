@@ -12,6 +12,7 @@ pub mod view_actions{
     use gtk::EventControllerKey;
     use gtk::glib::Propagation;
     use gtk::glib::clone;
+    use gtk::glib::Object;
 
     use crate::isv2_mediator::Isv2Mediator;
     use crate::isv2_parameter::Isv2Parameter;
@@ -42,16 +43,24 @@ pub mod view_actions{
 
     pub const ACT_PREVIEW : &str = "preview";
     // act_preview /////////////////////////////////////////
-    pub fn act_preview(preview_window: PreviewWindow,
-                       sel: SingleSelection) -> SimpleAction{
+    pub fn act_preview(mediator : Isv2Mediator,
+                       parameter: Isv2Parameter,
+                       sel      : SingleSelection) -> SimpleAction{
+
         let act = SimpleAction::new(ACT_PREVIEW, None);
         act.connect_activate(move|_act, _val|{
+
+            // full screen preview window //////////////////////////
+            let full_preview_window = PreviewWindow::new();
+            mediator.set_property("full_preview_window", Some(full_preview_window.clone()));
+            full_preview_window.set_mediator(mediator.clone().upcast::<Object>().downgrade());
+            full_preview_window.set_parameter(parameter.clone().downgrade());
+
             let win = Window::builder().title( String::from("preview") ).modal(true).build();
-            win.set_child(Some(&preview_window));
+            win.set_child(Some(&full_preview_window));
             win.set_decorated(false);
 
-            //TODO: set key controller, and set size
-
+            //TODO: set key controller
             let kctrl = EventControllerKey::new();
             kctrl.connect_key_pressed(clone!(@strong sel => move|_ctrl, key, _code, _state|{
                 match key.name().unwrap().as_str() {
@@ -62,8 +71,13 @@ pub mod view_actions{
                 Propagation::Stop
             }));
             win.add_controller(kctrl);
-            win.fullscreen();
 
+            win.connect_close_request(clone!(@strong mediator => move|_w|{
+                mediator.emit_by_name::<()>("close-full-screen-preview", &[]);
+                Propagation::Proceed
+            }));
+
+            win.fullscreen();
             win.present();
         });
         act

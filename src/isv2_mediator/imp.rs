@@ -71,7 +71,6 @@ impl ObjectImpl for Isv2Mediator {
                 .param_types([ScenarioNodeObject::static_type()])
                 .build(),
                  Signal::builder("close-full-screen-preview")
-                .param_types([ScenarioNodeObject::static_type()])
                 .build()
             ]
         });

@@ -5,6 +5,7 @@ use gtk::SingleSelection;
 use gtk::ListView;
 use gtk::prelude::*;
 use gtk::subclass::prelude::ObjectSubclassIsExt;
+use glib::object::Object;
 
 use crate::scenario_node_object::ScenarioNodeObject;
 use crate::sno_list::get_belong_model;
@@ -25,6 +26,10 @@ impl Isv2Mediator{
                  mediator.imp().attr_box.borrow().emit_by_name::<()>("sno-selected", &[&s]);
                  mediator.imp().preview_window.borrow().emit_by_name::<()>("sno-selected", &[&s]);
                  mediator.imp().node_add_box.borrow().emit_by_name::<()>("sno-selected", &[&s]);
+                 let full_preview = &*mediator.imp().full_preview_window.borrow();
+                 if let Some(full_preview) = full_preview {
+                     full_preview.emit_by_name::<()>("sno-selected", &[&s]);
+                 }
              })
          );
         // mat-attribute-changed ///////////////////////////
@@ -61,6 +66,13 @@ impl Isv2Mediator{
                 mediator.imp().attr_box.borrow().emit_by_name::<()>("unset-sno", &[&s]);
                 mediator.imp().preview_window.borrow().emit_by_name::<()>("unset-sno", &[&s]);
                 mediator.imp().node_add_box.borrow().emit_by_name::<()>("unset-sno", &[&s]);
+            }));
+        // close-full-screen-preview ///////////////////////
+        obj.connect_closure(
+            "close-full-screen-preview",
+            false,
+            closure_local!(|mediator: Self|{
+                mediator.set_property("full_preview_window", None::<Object>);
             }));
         ////////////////////////////////////////////////////
         obj

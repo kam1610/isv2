@@ -429,6 +429,15 @@ pub fn build_ui(app: &Application) {
         ("collapse node",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::Expand   as i32, "<Alt>e"),];
     assign_acti32_and_accelkey(&node_view_acts, &menu_node_view, &app);
 
+    // full screen
+    let act_full_screen_preview = view_actions::act_preview(mediator.clone(),
+                                                            param.clone(),
+                                                            selection_model.clone());
+    app.add_action(&act_full_screen_preview);
+    let full_screen_item = MenuItem::new(Some("full screen preview"),
+                                         Some( &("app.".to_string() + view_actions::ACT_PREVIEW)));
+    menu_node_view.append_item(&full_screen_item);
+
     // close_all_page //////////////////////////////////////
     let act_close_all_page = view_actions::act_close_all_page(selection_model.clone());
     app.add_action(&act_close_all_page);

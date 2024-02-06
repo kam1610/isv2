@@ -21,7 +21,7 @@ use gtk::SingleSelection;
 use gtk::TreeListRow;
 use gtk::Window;
 use gtk::cairo::Antialias;
-use gtk::cairo::Context;
+//use gtk::cairo::Context;
 use gtk::cairo::FontOptions;
 use gtk::cairo::Format;
 use gtk::cairo::ImageSurface;
@@ -35,11 +35,20 @@ use gtk::prelude::*;
 
 use std::cell::Cell;
 use std::fs::OpenOptions;
+use std::fs::File;
+use std::fs::Metadata;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::time::SystemTime;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::Hasher;
+use std::collections::HashMap;
+
+use anyhow::Context;
+use anyhow::Result;
 
 use crate::drawing_util::util::CursorState;
 use crate::drawing_util::util;
@@ -67,7 +76,7 @@ impl PreviewWindow {
                            scale_pbuf : &Option<Pixbuf>,
                            target_w   : i32,
                            target_h   : i32,
-                           cr         : &gtk::cairo::Context,
+                           cr         : &cairo::Context,
                            param      : Option<Isv2Parameter>
     ){
         if let Some(s) = ScenarioNode::get_belong_scene(sn){
@@ -443,7 +452,7 @@ impl PreviewWindow {
                                               @strong param,
                                               @strong p,
                                               @strong prev_win,
-                                              @strong status_bar=> async move {
+                                              @strong status_bar => async move {
 
             gtk::glib::timeout_future_seconds(1).await; // wait for progress window
 
@@ -481,12 +490,13 @@ impl PreviewWindow {
                                 if let Ok(sf) = ImageSurface::create(Format::ARgb32, target_w, target_h) { sf }
                                 else { println!("(export_images) creating surface failed"); return; } };
                             let cr = {
-                                if let Ok(ctx) = Context::new(&surface) { ctx }
+                                if let Ok(ctx) = cairo::Context::new(&surface) { ctx }
                                 else { println!("(export_images) creating context failed"); return; } };
                             // 1. draw scene
                             Self::draw_func_for_scene(&sn, &pbuf.clone(), &scale_pbuf, target_w, target_h, &cr, None);
                             // 2. draw mats
-                            Self::draw_mats_sub(&area, &prev_win.pango_context(), &cr, 0/* w */, 0/* h */);
+                            //prev_win.draw_mats_sub(&area, &prev_win.pango_context(), &cr, 0/* w */, 0/* h */);
+                            prev_win.draw_mats_sub(&area, &prev_win.pango_context(), &cr, 0/* w */, 0/* h */);
 
                             // TODO:ディレクトリがなければ作成する
                             let mut path_buf = param.property::<PathBuf>("project_dir");
@@ -583,47 +593,119 @@ impl PreviewWindow {
         self.imp().area_state.set(CursorState::None);
         self.set_cursor_from_name( None );
     }
+    // draw_bg_mat_img /////////////////////////////////////
+    fn draw_bg_mat_img(param       : &Isv2Parameter,
+                       sn          : &ScenarioNode,
+                       img_mat_buf : &mut HashMap<u64, Pixbuf>,
+                       cr          : &cairo::Context,
+                       x: f64, y: f64, w: f64, h: f64
+    ) -> Result<()>{
+        // todo: use anyhow
+
+        let mut prj_path = param.property::<PathBuf>("project_dir");
+        if let Some(bgimg_path) = sn.get_mat_bgimg(){
+            prj_path.push(&bgimg_path); }
+
+        if !prj_path.is_file(){ anyhow::bail!("prj_path is not file"); }
+
+        let bg_file = File::open(prj_path.clone())
+            .with_context(||format!("opening {prj_path:?} failed"))?;
+        let m_data = bg_file.metadata()
+            .with_context(||format!("obtaining metadata of {prj_path:?} failed"))?;
+        let mod_time = m_data.modified()
+            .with_context(||format!("getting mod_tile of {prj_path:?} failed"))?;
+        let epoch = mod_time.duration_since(SystemTime::UNIX_EPOCH)
+            .with_context(||format!("getting epoch of {prj_path:?} failed"))?;
+
+        // generate hash of file name with timestamp
+        let prj_path_str = prj_path.clone().into_os_string().into_string().unwrap();
+        let mut hasher = DefaultHasher::new();
+        hasher.write(prj_path_str.as_bytes());
+        hasher.write(&epoch.as_secs().to_ne_bytes());
+        hasher.write(&epoch.as_nanos().to_ne_bytes());
+        let hash_u64 = hasher.finish();
+
+        let bg_buf_sub;
+        let bg_pbuf = if let Some(b) = img_mat_buf.get(&hash_u64){ b } else {
+            let ref pbuf = Pixbuf::from_file( prj_path.clone() )
+                .with_context(||format!("creating pixbuf of {prj_path:?} failed"))?;
+            img_mat_buf.insert(hash_u64, pbuf.clone());
+            bg_buf_sub = pbuf.clone();
+            &bg_buf_sub
+        };
+        // TODO: resize cache mount of img_mat_buf when it becomes too large
+
+        let scale_pbuf = {
+            if let Some(p) = bg_pbuf.scale_simple(w as i32, h as i32,
+                                                  InterpType::Bilinear) { p }
+            else { println!("scale_simple failed in {}:{}", file!(), line!()); anyhow::bail!(""); }
+        };
+        cr.set_source_pixbuf(&scale_pbuf, x, y);
+        cr.rectangle(x, y, w, h);
+        cr.fill().expect("draw image on PreviewWindow");
+
+        Ok(())
+    }
     // draw_mats ///////////////////////////////////////////
-    fn draw_mats_sub(area: &Vec<(Rc<ScenarioNode>, Option<Rc<ScenarioNode>>)>,
+    fn draw_mats_sub(&self,
+                     area: &Vec<(Rc<ScenarioNode>, Option<Rc<ScenarioNode>>)>,
                      pc  : &gtk::pango::Context,
-                     cr  : &Context,
+                     cr  : &cairo::Context,
                      _w: i32, _h: i32){
         for area_item in area {
-            // mat /////////////////////////////////////////
             let (sn_source, sn_ref) = area_item;
             let sn = if let Some(ref_target) = sn_ref { ref_target } else { sn_source };
 
-            let (mut x, y, w, h) = {
+            // mat /////////////////////////////////////////
+            let (mut x, mut y, w, h) = {
                 if sn_source.get_label_type() == Some(LabelType::RefNoRect) {
                     if let Some( tuple )  = sn_source.get_mat_pos_dim_f64() { tuple } else { return; }
                 } else {
                     if let Some( tuple )  = sn.get_mat_pos_dim_f64() { tuple } else { return; }
                 }
             };
+            let (pad_x, pad_y) = {
+                if sn_source.get_label_type() == Some(LabelType::RefNoRect) {
+                    if let Some( tuple )  = sn_source.get_mat_text_pos_f64() { tuple } else { return; }
+                } else {
+                    if let Some( tuple )  = sn.get_mat_text_pos_f64() { tuple } else { return; }
+                }
+            };
+
 
             let (r, g, b, a) =
                 if let Some( tuple )  = sn.get_mat_rgba_tuple_f64() { tuple } else { return; };
-            cr.set_line_width(2.0); // TODO parameterize
-            cr.set_source_rgba( r, g, b, a );
 
-            let round = sn.get_mat_r().unwrap();
-            if round <= 0 {
-                cr.rectangle(x, y, w, h);
-            } else {
-                let round = round as f64;
-                let m_pi = glib_sys::G_PI;
-                cr.move_to(x-round,   y);
-                cr.arc    (x,     y,        round,  1.0*m_pi,  1.5*m_pi);
-                cr.line_to(x+w,   y-round);
-                cr.arc    (x+w,   y,        round,  1.5*m_pi,  2.0*m_pi);
-                cr.line_to(x+w+round, y+h+r);
-                cr.arc    (x+w,   y+h,      round,  0.0*m_pi,  0.5*m_pi);
-                cr.line_to(x,     y+h+round);
-                cr.arc    (x,     y+h,      round,  0.5*m_pi,  1.0*m_pi);
-                cr.close_path();
+            if sn.get_mat_bg_en().unwrap() { // image mat
+                if let Err(e) = Self::draw_bg_mat_img( &self.imp().parameter.borrow().upgrade().unwrap(),
+                                                        sn,
+                                                        &mut self.imp().img_mat_buf.borrow_mut(),
+                                                        cr,
+                                                        x, y, w, h) {
+                    println!("{:?}", e);
+                }
+            } else { // draw rectangle
+                cr.set_line_width(2.0); // TODO parameterize
+                cr.set_source_rgba( r, g, b, a );
+
+                let round = sn.get_mat_r().unwrap();
+                if round <= 0 {
+                    cr.rectangle(x, y, w, h);
+                } else {
+                    let round = round as f64;
+                    let m_pi = glib_sys::G_PI;
+                    cr.move_to(x-round,   y);
+                    cr.arc    (x,     y,        round,  1.0*m_pi,  1.5*m_pi);
+                    cr.line_to(x+w,   y-round);
+                    cr.arc    (x+w,   y,        round,  1.5*m_pi,  2.0*m_pi);
+                    cr.line_to(x+w+round, y+h+r);
+                    cr.arc    (x+w,   y+h,      round,  0.0*m_pi,  0.5*m_pi);
+                    cr.line_to(x,     y+h+round);
+                    cr.arc    (x,     y+h,      round,  0.5*m_pi,  1.0*m_pi);
+                    cr.close_path();
+                }
+                cr.fill().expect("fill draw_mats_sub");
             }
-
-            cr.fill().expect("fill draw_mats_sub");
             // text ////////////////////////////////////////
             let layout = Layout::new(pc);
 
@@ -663,7 +745,13 @@ impl PreviewWindow {
 
             // text mat
             if sn.get_mat_vertical().unwrap() {
-                x = x + w; }
+                x = x + w - pad_x;
+            }
+            else {
+                x = x + pad_x;
+            }
+            y = y + pad_y;
+
             cr.set_line_join(cairo::LineJoin::Round);
 
             cr.save().expect("save context before stroke text");
@@ -691,8 +779,8 @@ impl PreviewWindow {
         }
 
     }
-    pub fn draw_mats(&self, cr: &Context, _w: i32, _h: i32){
-        Self::draw_mats_sub(&*self.imp().area.borrow(),
+    pub fn draw_mats(&self, cr: &cairo::Context, _w: i32, _h: i32){
+        self.draw_mats_sub(&*self.imp().area.borrow(),
                             &self.pango_context(),
                             cr, _w, _h);
     }

@@ -392,6 +392,45 @@ impl Isv2PosDimBox{
     }
     pub fn get_box(&self) -> Box { self.posdim_box.clone() }
 }
+struct Isv2PosBox{
+    pub pos_box   : Box,
+    pub pos_label : Label,
+    pub pos_entry : Entry
+}
+impl Isv2PosBox{
+    pub fn build(sno      : ScenarioNodeObject,
+                 store    : gio::ListStore,
+                 mediator : WeakRef<Object>) -> Self{
+        let pos_box = Box::builder().orientation(Orientation::Horizontal).build();
+        let pos_label = Label::new(Some("text pos from top left(x,y)"));
+        let (x, y) = sno.get_node().get_mat_text_pos().unwrap();
+        let pos_str = format!("{},{}", x, y);
+        let pos_entry = Entry::builder().buffer(&EntryBuffer::new(Some(pos_str))).build();
+        pos_entry.connect_changed( clone!( @strong  sno,
+                                            @strong store,
+                                            @strong mediator => move |pe| {
+                                                let t = pe.text();
+                                                let v:Vec<&str> = t.split(",").collect();
+                                                if v.len() != 2 { return; }
+                                                if let ( Ok(x), Ok(y)) =
+                                                    (i32::from_str_radix(v[0], 10),
+                                                     i32::from_str_radix(v[1], 10)) {
+                                                        sno.get_node().set_mat_text_pos(x, y);
+                                                        store.items_changed(sno.get_seq() as u32, 1, 1);
+                                                        mediator.upgrade().unwrap().emit_by_name::<()>("mat-attribute-changed", &[&sno]);
+                                                    }
+                                            }));
+        pos_box.append(&pos_label);
+        pos_box.append(&pos_entry);
+
+        if sno.get_node().get_label_type() == Some(LabelType::Ref){
+            set_css_grayout(vec![pos_label.clone().upcast::<Widget>(),
+                                 pos_entry.clone().upcast::<Widget>() ],
+                            true);
+        }
+        Self{ pos_box, pos_label, pos_entry }
+    }
+}
 // float_entry_box /////////////////////////////////////////
 struct Isv2FloatEntryBox {
     pub hbox  : Box,
@@ -434,12 +473,13 @@ impl Isv2FloatEntryBox{
     }
 }
 // build_mat_attribute_box ////////////////////////////////
-fn build_mat_attribute_box(b        : &ScenarioNodeAttributeBox,
-                           root     : Root,
-                           mediator : WeakRef<Object>,
-                           store    : gio::ListStore,
-                           sno      : ScenarioNodeObject,
-                           temp_box : &Box) -> Widget{
+fn build_mat_attribute_box(b         : &ScenarioNodeAttributeBox,
+                           root      : Root,
+                           mediator  : WeakRef<Object>,
+                           store     : gio::ListStore,
+                           sno       : ScenarioNodeObject,
+                           temp_box  : &Box,
+                           parameter : Isv2Parameter) -> Widget{
     // name ////////////////////////////////////////////////
     /*
     let name_box = Box::builder().orientation(Orientation::Horizontal).build();
@@ -448,6 +488,13 @@ fn build_mat_attribute_box(b        : &ScenarioNodeAttributeBox,
     name_box.append(&name_label);
     name_box.append(&name_entry);
     */
+
+    // bgimg ///////////////////////////////////////////////
+    let bgimg_box = Isv2FileDialogBox::build(root.clone(),
+                                             sno.clone(),
+                                             mediator.clone(),
+                                             parameter.clone(),
+                                             "mat-attribute-changed".to_string());
 
     // color_box ///////////////////////////////////////////
     let color_box = Rc::new(Isv2ColorBox::build( root.clone(),
@@ -459,6 +506,9 @@ fn build_mat_attribute_box(b        : &ScenarioNodeAttributeBox,
                                                  |s, c| { s.get_node().set_mat_rgba(c) } ));
     // posdim //////////////////////////////////////////////
     let posdim_box = Isv2PosDimBox::build(b, sno.clone(), store.clone(), mediator.clone());
+    // text pos ///////////////////////////////////////////
+    let text_pos_box = Isv2PosBox::build(sno.clone(), store.clone(), mediator.clone());
+
     // round ///////////////////////////////////////////////
     let round_box   = Box::builder().orientation(Orientation::Horizontal).build();
     let round_label = Label::new(Some("round"));
@@ -560,7 +610,10 @@ fn build_mat_attribute_box(b        : &ScenarioNodeAttributeBox,
         set_css_grayout(vec![vertical_label.upcast_ref::<Widget>().clone()], true);
     }
     // label ///////////////////////////////////////////////
-    let gray_list = vec![round_label.upcast_ref::<Widget>().clone(),
+    let gray_list = vec![bgimg_box.file_dialog_label.upcast_ref::<Widget>().clone(),
+                         bgimg_box.file_dialog_entry.upcast_ref::<Widget>().clone(),
+                         bgimg_box.enable_check.upcast_ref::<Widget>().clone(),
+                         round_label.upcast_ref::<Widget>().clone(),
                          round_entry.upcast_ref::<Widget>().clone(),
                          color_box.color_label.upcast_ref::<Widget>().clone(),
                          color_box.color_entry.upcast_ref::<Widget>().clone(),
@@ -573,7 +626,9 @@ fn build_mat_attribute_box(b        : &ScenarioNodeAttributeBox,
                          outl_box.entry.upcast_ref::<Widget>().clone(),
                          lspacing_box.label.upcast_ref::<Widget>().clone(),
                          lspacing_box.entry.upcast_ref::<Widget>().clone(),
-                         vertical_label.upcast_ref::<Widget>().clone()];
+                         vertical_label.upcast_ref::<Widget>().clone(),
+                         text_pos_box.pos_label.upcast_ref::<Widget>().clone(),
+                         text_pos_box.pos_entry.upcast_ref::<Widget>().clone()];
     let gray_list_posdim = vec![posdim_box.posdim_label.upcast_ref::<Widget>().clone(),
                                 posdim_box.posdim_entry.upcast_ref::<Widget>().clone()];
 
@@ -586,10 +641,12 @@ fn build_mat_attribute_box(b        : &ScenarioNodeAttributeBox,
 
     // apply to temp_box
     //temp_box.append(&name_box);
+    temp_box.append(&bgimg_box.file_dialog_box);
     temp_box.append(&color_box.get_box());
     temp_box.append(&label_box);
     temp_box.append(&posdim_box.get_box());
     temp_box.append(&round_box);
+    temp_box.append(&text_pos_box.pos_box);
     temp_box.append(&font_dialog_button);
     temp_box.append(&font_color_box.get_box());
     temp_box.append(&font_weight_box);
@@ -605,12 +662,14 @@ struct Isv2FileDialogBox{
     pub file_dialog_box    : Box,
     pub file_dialog_label  : Label,
     pub file_dialog_entry  : Entry,
+    pub enable_check       : CheckButton,
 }
 impl Isv2FileDialogBox {
-    pub fn build(root      : Root,
-                 sno       : ScenarioNodeObject,
-                 mediator  : WeakRef<Object>,
-                 parameter : Isv2Parameter
+    pub fn build(root         : Root,
+                 sno          : ScenarioNodeObject,
+                 mediator     : WeakRef<Object>,
+                 parameter    : Isv2Parameter,
+                 mediator_msg : String
     ) -> Self{
         let file_dialog_box = Box::builder().orientation(Orientation::Horizontal).build();
         let file_dialog_label = Label::new(Some("bg img"));
@@ -645,25 +704,58 @@ impl Isv2FileDialogBox {
                    @strong file_dialog,
                    @strong file_dialog_entry,
                    @weak   sno,
-                   @strong mediator => move |_b|{
+                   @strong mediator,
+                   @strong mediator_msg => move |_b|{
                        let root_win = root.downcast_ref::<Window>().unwrap();
                        file_dialog.open(
                            Some(root_win),
                            None::<&Cancellable>,
                            clone!(@strong file_dialog_entry,
                                   @strong sno,
-                                  @strong mediator => move|r|{
+                                  @strong mediator,
+                                  @strong mediator_msg => move|r|{
                                       let f = if let Ok(f) = r { f } else { return; };
-                                      sno.get_node().set_scene_bgimg(
-                                          Some(f.path().unwrap())
-                                      );
+                                      if sno.get_node().is_scene() {
+                                          sno.get_node().set_scene_bgimg(
+                                              Some(f.path().unwrap()))
+                                      } else if sno.get_node().is_mat() {
+                                          sno.get_node().set_mat_bgimg(
+                                              Some(f.path().unwrap()))
+                                      } else {
+                                          println!("(Isv2FileDialogBox) unsupported node!");
+                                          return;
+                                      }
                                       file_dialog_entry.set_text(f.path().unwrap().to_str().unwrap());
                                       mediator.upgrade().unwrap()
-                                          .emit_by_name::<()>("scene-attribute-changed", &[&sno]);
+                                          .emit_by_name::<()>(&mediator_msg, &[&sno]);
                                   }));
                    }));
 
+        //let enable_check = CheckButton::builder().active(sno.get_node().get_scene_bg_en().unwrap()).build();
+        let enable_check = CheckButton::new();
+        if (sno.get_node().is_scene() && sno.get_node().get_scene_bg_en().unwrap()) ||
+            (sno.get_node().is_mat() && sno.get_node().get_mat_bg_en().unwrap()) {
+                enable_check.set_active(true);
+            } else {
+                enable_check.set_active(false);
+            }
+
+        enable_check.connect_toggled(
+            clone!(@strong mediator,
+                   @strong sno => move|chk|{
+                       if sno.get_node().is_scene() {
+                           sno.get_node().set_scene_bg_en(chk.is_active());
+                       } else if sno.get_node().is_mat() {
+                           sno.get_node().set_mat_bg_en(chk.is_active());
+                       } else {
+                           println!("(Isv2FileDialogBox) unsupported node!");
+                       }
+                       mediator.upgrade().unwrap()
+                           .emit_by_name::<()>(&mediator_msg, &[&sno]);
+                   }));
+
         file_dialog_box.append(&file_dialog_label);
+        file_dialog_box.append(&enable_check);
         file_dialog_box.append(&file_dialog_entry);
         file_dialog_box.append(&file_dialog_button);
 
@@ -671,6 +763,7 @@ impl Isv2FileDialogBox {
             file_dialog_box,
             file_dialog_label,
             file_dialog_entry,
+            enable_check,
         }
     }
 }
@@ -991,20 +1084,8 @@ fn build_scene_attribute_box(sno      : ScenarioNodeObject,
     let bgimg_box = Isv2FileDialogBox::build(root.clone(),
                                              sno.clone(),
                                              mediator.clone(),
-                                             parameter.clone());
-    // bg_en ///////////////////////////////////////////////
-    let bg_en_box   = Box::builder().orientation(Orientation::Horizontal).build();
-    let bg_en_label = Label::new(Some("bg enable"));
-    let bg_en_check = CheckButton::builder().active(sno.get_node().get_scene_bg_en().unwrap()).build();
-    bg_en_check.connect_toggled(
-        clone!(@strong mediator,
-               @strong sno => move|bgchk|{
-                   sno.get_node().set_scene_bg_en(bgchk.is_active());
-                   mediator.upgrade().unwrap()
-                       .emit_by_name::<()>("scene-attribute-changed", &[&sno]);
-               }));
-    bg_en_box.append(&bg_en_label);
-    bg_en_box.append(&bg_en_check);
+                                             parameter.clone(),
+                                             "scene-attribute-changed".to_string());
 
     // bg color //////////////////////////////////////////
     // Isv2ColorBox will emits "mat-attribute-changed" to mediator,
@@ -1027,8 +1108,7 @@ fn build_scene_attribute_box(sno      : ScenarioNodeObject,
     // label ///////////////////////////////////////////////
     let gray_list = vec![bgimg_box.file_dialog_label.upcast_ref::<Widget>().clone(),
                          bgimg_box.file_dialog_entry.upcast_ref::<Widget>().clone(),
-                         bg_en_label.upcast_ref::<Widget>().clone(),
-                         bg_en_check.upcast_ref::<Widget>().clone(),
+                         bgimg_box.enable_check.upcast_ref::<Widget>().clone(),
                          bg_color_box.color_label.upcast_ref::<Widget>().clone(),
                          bg_color_box.color_entry.upcast_ref::<Widget>().clone(),
                          crop_editor.crop_label.upcast_ref::<Widget>().clone(),
@@ -1049,7 +1129,6 @@ fn build_scene_attribute_box(sno      : ScenarioNodeObject,
     // apply to temp_box
     temp_box.append(&label_box);
     temp_box.append(&bgimg_box.file_dialog_box);
-    temp_box.append(&bg_en_box);
     temp_box.append(&bg_color_box.get_box());
     temp_box.append(&crop_editor.crop_box);
 
@@ -1116,7 +1195,8 @@ fn change_item_type(b: ScenarioNodeAttributeBox, s: SingleSelection){
                                                     b.imp().mediator.borrow().clone(),
                                                     store,
                                                     sno,
-                                                    &temp_box);
+                                                    &temp_box,
+                                                    b.imp().parameter.borrow().clone().unwrap());
             *b.imp().focus_tag.borrow_mut() = Some(focus_tag);
         },
         scenario_node::Item::Scene(_) => {

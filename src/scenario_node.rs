@@ -803,7 +803,6 @@ impl ScenarioNode {
             _ => ()
         }
     }
-    // mat_rgba ////////////////////////////////////////////
     pub fn get_mat_pos_dim_f64(&self) -> Option<(f64, f64, f64, f64)>{
         if let Some((x, y, w, h)) = self.get_mat_pos_dim() {
             Some((x as f64, y as f64, w as f64, h as f64))
@@ -811,6 +810,7 @@ impl ScenarioNode {
             None
         }
     }
+    // mat_rgba ////////////////////////////////////////////
     pub fn get_mat_rgba(&self) -> Option<Vec<u32>>{
         match &(*self.value.borrow()){
             Item::Mat(m) | Item::Pmat(m) => {
@@ -1042,6 +1042,66 @@ impl ScenarioNode {
             _ => ()
         }
     }
+    // mat_bgimg /////////////////////////////////////
+    pub fn get_mat_bgimg(&self) -> Option<PathBuf>{
+        match &(*self.value.borrow()){
+            Item::Mat(m) | Item::Pmat(m) => {
+                if let Some(b) = &m.bgimg { Some(b.clone()) }
+                else { None }
+            },
+            _ => None,
+        }
+    }
+    pub fn set_mat_bgimg(&self, p: Option<PathBuf>){
+        match *self.value.borrow_mut(){
+            Item::Mat(ref mut m) | Item::Pmat(ref mut m) => {
+                m.bgimg = p;
+            },
+            _ => ()
+        }
+    }
+    // mat_bg_en /////////////////////////////////////////
+    pub fn get_mat_bg_en(&self) -> Option<bool>{
+        match &(*self.value.borrow()) {
+            Item::Mat(m) | Item::Pmat(m) => {
+                Some( m.bg_en )
+            },
+            _ => None,
+        }
+    }
+    pub fn set_mat_bg_en(&self, en: bool){
+            match *self.value.borrow_mut(){
+            Item::Mat(ref mut m) | Item::Pmat(ref mut m) => {
+                m.bg_en = en;
+            },
+            _ => ()
+        }
+    }
+    // mat_text_offset /////////////////////////////////////
+    pub fn get_mat_text_pos(&self) -> Option<(i32, i32)>{
+        match &(*self.value.borrow()){
+            Item::Mat(m) | Item::Pmat(m) => {
+                Some( (m.text_pos.x, m.text_pos.y) )
+            },
+            _ => None,
+        }
+    }
+    pub fn get_mat_text_pos_f64(&self) -> Option<(f64, f64)>{
+        match &(*self.value.borrow()){
+            Item::Mat(m) | Item::Pmat(m) => {
+                Some( (m.text_pos.x as f64, m.text_pos.y as f64) )
+            },
+            _ => None,
+        }
+    }
+    pub fn set_mat_text_pos(&self, x: i32, y: i32){
+        match *self.value.borrow_mut(){
+            Item::Mat(ref mut m) | Item::Pmat(ref mut m) => {
+                m.text_pos.x = x; m.text_pos.y = y;
+            },
+            _ => ()
+        }
+    }
     //// scene /////////////////////////////////////////////
     // scene_bgcol ////////////////////////////////////
     pub fn get_scene_bgcol(&self) -> Option<Vec<u32>>{
@@ -1198,7 +1258,11 @@ pub struct Position {
     pub y : i32,
 }
 impl Default for Position{
-    fn default() -> Self{ Self{x: 0, y: 0} } }
+    fn default() -> Self{ Self{x: 0, y: 0} }
+}
+impl Position{
+    fn from_xy(x: i32, y: i32) -> Self{ Self{x, y} }
+}
 // Dimension ///////////////////////////////////////////////
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Dimension {
@@ -1315,6 +1379,12 @@ pub struct Mat {
     pub line_spacing  : f32,
     pub vertical      : bool,
     pub text          : String,
+    #[serde(default)]
+    pub bgimg         : Option<PathBuf>,
+    #[serde(default)]
+    pub bg_en         : bool,
+    #[serde(default)]
+    pub text_pos      : Position,
 }
 impl Mat {
     pub fn dump(&self) {
@@ -1351,6 +1421,9 @@ impl Default for Mat{
             font_family   : String::from("Rounded M+ 1m"),
             line_spacing  : 0.8,
             vertical      : false,
+            bgimg         : None,
+            bg_en         : false,
+            text_pos      : Position::from_xy(0, 0),
         }
     }
 }

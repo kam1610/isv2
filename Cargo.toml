@@ -19,6 +19,8 @@ serde_yaml = "0.9"
 async-channel = "2.0"
 dunce = "1.0"
 
+anyhow = "1.0"
+
 [target.'cfg(windows)'.dependencies]
 winapi = {version = "0.3", features = ["wincon", "winuser"]}
 

@@ -445,6 +445,12 @@ pub fn build_ui(app: &Application) {
                                                  Some( &("app.".to_string() + view_actions::ACT_CLOSE_ALL_PAGE) ));
     menu_node_view.append_item(&menu_item_close_all_page);
 
+    let act_close_all_scene = view_actions::act_close_all_scene(selection_model.clone());
+    app.add_action(&act_close_all_scene);
+    let menu_item_close_all_scene = MenuItem::new(Some("CloseAll_Scene"),
+                                                  Some( &("app.".to_string() + view_actions::ACT_CLOSE_ALL_SCENE) ));
+    menu_node_view.append_item(&menu_item_close_all_scene);
+
     // toggle_bgimg ////////////////////////////////////
     let act_toggle_bgimg = view_actions::act_toggle_bgimg(param.clone(), mediator.clone(), selection_model.clone());
     app.add_action(&act_toggle_bgimg);
@@ -534,6 +540,8 @@ pub fn build_ui(app: &Application) {
         ("prev line 3",          text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::PrevLine3     as i32, "<Alt>0"),
         ("beginning line",       text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::BegLine       as i32, "<Ctrl>a"),
         ("end line",             text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::EndLine       as i32, "<Ctrl>e"),
+        ("beginning buffer",     text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::BegBuff       as i32, "<Alt>less"),
+        ("end buffer",           text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::EndBuff       as i32, "<Alt>greater"),
         ("delete backward char", text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::DelBackChar  as i32, "<Ctrl>h"),
         ("delete char",          text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::DelChar      as i32, "<Ctrl>d"),
         ("kill line",            text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::KillLine     as i32, "<Ctrl>k"),
@@ -541,6 +549,7 @@ pub fn build_ui(app: &Application) {
         ("kill word",            text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::KillWord     as i32, "<Alt>d" ),
         ("new line",             text_edit::ACT_INS_TEXT,    text_edit::ActInsTextCmd::NewLine      as i32, "<Ctrl>m"),
         ("open line",            text_edit::ACT_INS_TEXT,    text_edit::ActInsTextCmd::OpenLine     as i32, "<Ctrl>o"),
+        ("dakuten",              text_edit::ACT_INS_TEXT,    text_edit::ActInsTextCmd::Dakuten      as i32, "<Ctrl>quoteright"),
         ("copy text",            text_edit::ACT_C_N_P_TEXT,  text_edit::ActCnPTextCmd::Copy         as i32, "<Alt>w"),
         ("cut text",             text_edit::ACT_C_N_P_TEXT,  text_edit::ActCnPTextCmd::Cut          as i32, "<Ctrl>w"),
         ("paste text",           text_edit::ACT_C_N_P_TEXT,  text_edit::ActCnPTextCmd::Paste        as i32, "<Ctrl>y"),];

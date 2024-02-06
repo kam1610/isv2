@@ -719,8 +719,7 @@ impl PreviewWindow {
             // to avoid unintentional omission of display.
             // This is useful when line-spacing is set to 1 or less.
             // The expanded width (x3) is provisional.
-
-            layout.set_text(&sn_source.get_mat_text().unwrap());
+            layout.set_markup(&sn_source.get_mat_text().unwrap());
 
             // line spacing
             layout.set_line_spacing(sn.get_mat_line_spacing().unwrap());

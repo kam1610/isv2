@@ -574,7 +574,7 @@ fn build_mat_attribute_box(b         : &ScenarioNodeAttributeBox,
                                                         mediator.clone(),
                                                         store.clone(),
                                                         sno.clone(),
-                                                        &sno.get_node().get_mat_font_rgba().unwrap(),
+                                                        &sno.get_node().get_mat_font_rgba_2().unwrap(),
                                                         |s, c| { s.get_node().set_mat_font_rgba_2(c) } ));
     // font_outl ///////////////////////////////////////////
     let outl_box = Isv2FloatEntryBox::build(sno.clone(),

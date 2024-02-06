@@ -62,7 +62,7 @@ pub mod view_actions{
                 Propagation::Stop
             }));
             win.add_controller(kctrl);
-
+            win.fullscreen();
 
             win.present();
         });

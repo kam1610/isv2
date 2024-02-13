@@ -484,6 +484,12 @@ impl PreviewWindow {
                         },
                         Item::Page(_) | Item::Pmat(_) => {
                             area.clear();
+
+                            let scene_node =
+                                if let Some(p) = ScenarioNode::get_belong_scene(&sn) { p } // detects scene
+                            else { println!("the scene to which new node belongs was not found!"); return; };
+                            Self::collect_mats_in_scene(&scene_node, &mut area);
+
                             Self::collect_mats(&sn, &mut area);
                             // 0. prepare surface
                             let surface = {
@@ -851,7 +857,37 @@ impl PreviewWindow {
             }
         }
     }
+    fn collect_mats_in_scene(scene_node : &Rc<ScenarioNode>,
+                             area      : &mut Vec::<(Rc<ScenarioNode>, Option<Rc<ScenarioNode>>)>) {
+        let mut p = scene_node.clone();
+        loop {
+            let p1;
+            match *p.value.borrow() {
+                Item::Scene(_) => {
+                    p1 = p.child.borrow().clone();
+                }
+                Item::Mat(_) => {
+                    let lbl_ref_node = ScenarioNode::search_def_label(p.clone()); // reference if it has label-ref
+                    area.push( (p.clone(), lbl_ref_node) );
+                    p1 = p.neighbor.borrow().clone();
+                }
+                Item::Page(_) | Item::Pmat(_) => {
+                    p1 = p.neighbor.borrow().clone();
+                }
+                _ => { p1 = None; }
+            }
+            if p1.is_some() { /* child or neighbor is set if exists */
+                p = p1.unwrap();
+            } else {
+                break;
+            }
+        }
+    }
     pub fn update_mat(&self, sno: ScenarioNodeObject, force_update: bool) -> bool{
+        let scene_node =
+            if let Some(p) = ScenarioNode::get_belong_scene(&sno.get_node()) { p } // detects scene
+            else { println!("the scene to which new node belongs was not found!"); return false; };
+
         let page_node =
             if let Some(p) = ScenarioNode::get_belong_page(&sno.get_node()) { p } // detects page or pmat
             else { println!("the page to which new node belongs was not found!"); return false; };
@@ -865,6 +901,8 @@ impl PreviewWindow {
         }
         // handles mat /////////////////////////////////////
         self.imp().area.borrow_mut().clear();
+
+        Self::collect_mats_in_scene(&scene_node, &mut(*self.imp().area.borrow_mut()));
         Self::collect_mats(&page_node, &mut(*self.imp().area.borrow_mut()));
         true
     }

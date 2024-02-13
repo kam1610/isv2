@@ -106,7 +106,6 @@ pub mod tree_manipulate{
                     .model().unwrap().downcast::<TreeListModel>().expect("TreeListModel")
                     .model().downcast::<gio::ListStore>().expect("ListStore");
                 root_store.insert(0, &new_node);
-
                 return;
             }
 
@@ -205,9 +204,11 @@ pub mod tree_manipulate{
                 scenario_node::Item::Mat(_) |
                 scenario_node::Item::Ovimg(_) => {
                     match *sel_sno.get_node().value.borrow() { // sel
-                        scenario_node::Item::Group |
-                        scenario_node::Item::Scene(_) => {
+                        scenario_node::Item::Group => {
                             return;
+                        },
+                        scenario_node::Item::Scene(_) => {
+                            ope_type = Operation::AddChild;
                         },
                         scenario_node::Item::Page(_) => {
                             ope_type = Operation::AddChild;

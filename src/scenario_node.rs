@@ -613,6 +613,7 @@ impl ScenarioNode {
                 match c {
                     Item::Page(_)  => true,
                     Item::Pmat(_)  => true,
+                    Item::Mat(_)   => true,
                     _ => false,
                 }
             },
@@ -650,6 +651,7 @@ impl ScenarioNode {
                 match n {
                     Item::Page(_)   => true,
                     Item::Pmat(_)   => true,
+                    Item::Mat(_)    => true,
                     _ => false,
                 }
             },
@@ -671,6 +673,7 @@ impl ScenarioNode {
                 match n {
                     Item::Page(_) => true,
                     Item::Pmat(_) => true,
+                    Item::Mat(_)  => true,
                     _ => false,
                 }
             },
@@ -691,7 +694,7 @@ impl ScenarioNode {
                     Item::Group    => true,
                     Item::Scene(_) => true,
                     Item::Page(_)  => true,
-                    Item::Mat(_)   => false,
+                    Item::Mat(_)   => true,
                     Item::Ovimg(_) => false,
                     Item::Pmat(_)  => true,
                 }

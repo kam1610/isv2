@@ -36,7 +36,6 @@ use gtk::prelude::*;
 use std::cell::Cell;
 use std::fs::OpenOptions;
 use std::fs::File;
-use std::fs::Metadata;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::str::FromStr;
@@ -90,7 +89,9 @@ impl PreviewWindow {
                 label_sno.get_scene_bgcol().unwrap().iter().map(|c|{ (*c as f64) / 255.0 }).collect();
             cr.set_source_rgb( c[0], c[1], c[2] );
             cr.rectangle(0.0, 0.0, target_w as f64, target_h as f64);
-            cr.fill().expect("fill background on PreviewWindow");
+            if cr.fill().is_err(){
+                println!("fill background on PreviewWindow failed");
+                return; }
 
             // draw image
             if !label_sno.get_scene_bg_en().unwrap() { return; }
@@ -112,7 +113,9 @@ impl PreviewWindow {
                                      crop_target_ofst_x as f64, crop_target_ofst_y as f64);
                 cr.rectangle(crop_target_ofst_x as f64, crop_target_ofst_y as f64,
                              crop_target_w      as f64, crop_target_h      as f64);
-                cr.fill().expect("draw image on PreviewWindow");
+                if cr.fill().is_err(){
+                    println!("draw image on PreviewWindow failed!");
+                }
             } else {
                 // println!("pbuf for background has not been prepared!");
             }
@@ -246,7 +249,8 @@ impl PreviewWindow {
                 );
             }
             pwin.draw_mats(cr, _w, _h);
-            cr.fill().expect("fill in draw_func on PreviewWindow");
+            if cr.fill().is_err(){
+                println!("fill in draw_func on PreviewWindow failed!"); return; }
         });
 
         // signal handler(sno-selected) ////////////////////
@@ -648,7 +652,8 @@ impl PreviewWindow {
         };
         cr.set_source_pixbuf(&scale_pbuf, x, y);
         cr.rectangle(x, y, w, h);
-        cr.fill().expect("draw image on PreviewWindow");
+        if cr.fill().is_err(){
+            println!("draw image on PreviewWindow failed!"); }
 
         Ok(())
     }
@@ -710,7 +715,9 @@ impl PreviewWindow {
                     cr.arc    (x,     y+h,      round,  0.5*m_pi,  1.0*m_pi);
                     cr.close_path();
                 }
-                cr.fill().expect("fill draw_mats_sub");
+                if cr.fill().is_err() {
+                    println!("fill draw_mats_sub failed!");
+                    return; }
             }
             // text ////////////////////////////////////////
             let layout = Layout::new(pc);

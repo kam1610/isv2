@@ -15,6 +15,7 @@ pub mod text_edit{
         NextLine,   PrevLine,
         NextLine3,  PrevLine3,
         BegLine,    EndLine,
+        BegBuff,    EndBuff,
     }
 
     pub const ACT_DEL_TEXT : &str = "del_text";
@@ -28,7 +29,7 @@ pub mod text_edit{
     pub const ACT_INS_TEXT : &str = "ins_text";
     #[derive(Debug, Clone, Copy)]
     pub enum ActInsTextCmd {
-        NewLine, OpenLine
+        NewLine, OpenLine, Dakuten
     }
 
     pub const ACT_C_N_P_TEXT : &str = "c_n_p_text";
@@ -55,6 +56,8 @@ pub mod text_edit{
                 x if x == ActCursorCmd::PrevLine3 as i32 => {(MovementStep::DisplayLines,    -3)},
                 x if x == ActCursorCmd::BegLine   as i32 => {(MovementStep::DisplayLineEnds, -1)},
                 x if x == ActCursorCmd::EndLine   as i32 => {(MovementStep::DisplayLineEnds,  1)},
+                x if x == ActCursorCmd::BegBuff   as i32 => {(MovementStep::BufferEnds,      -1)},
+                x if x == ActCursorCmd::EndBuff   as i32 => {(MovementStep::BufferEnds,       1)},
                 _ => { println!("(act_cursor_move) unexpected val: {}", val); return; }
             };
 
@@ -116,6 +119,9 @@ pub mod text_edit{
                     view.emit_insert_at_cursor("\n");
                     view.emit_move_cursor(MovementStep::DisplayLines, -1, false);
                     view.emit_move_cursor(MovementStep::DisplayLineEnds, 1, false);
+                },
+                x if x == ActInsTextCmd::Dakuten as i32 => {
+                    view.emit_insert_at_cursor("゛");
                 },
                 _ => { println!("(act_insert_text) unexpected val: {}", val); }
             }

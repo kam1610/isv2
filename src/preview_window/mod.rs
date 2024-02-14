@@ -45,9 +45,10 @@ use std::time::SystemTime;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hasher;
 use std::collections::HashMap;
-
 use anyhow::Context;
 use anyhow::Result;
+use std::time::Duration;
+
 
 use crate::drawing_util::util::CursorState;
 use crate::drawing_util::util;
@@ -527,7 +528,7 @@ impl PreviewWindow {
                             status_bar.set_status(&format!("{}/{}:{}", img_seq+1, total_num, path_buf.to_str().unwrap()));
 
                             sender.send(false).await.expect("The channel needs to be open.");
-                            //gtk::glib::timeout_future_seconds(1).await; // for async debug
+                            gtk::glib::timeout_future(Duration::from_millis(50)).await; // for async debug
 
                             img_seq+= 1;
                         },
@@ -682,8 +683,6 @@ impl PreviewWindow {
                     if let Some( tuple )  = sn.get_mat_text_pos_f64() { tuple } else { return; }
                 }
             };
-
-
             let (r, g, b, a) =
                 if let Some( tuple )  = sn.get_mat_rgba_tuple_f64() { tuple } else { return; };
 
@@ -733,8 +732,7 @@ impl PreviewWindow {
             // to avoid unintentional omission of display.
             // This is useful when line-spacing is set to 1 or less.
             // The expanded width (x3) is provisional.
-
-            layout.set_text(&sn_source.get_mat_text().unwrap());
+            layout.set_markup(&sn_source.get_mat_text().unwrap());
 
             // line spacing
             layout.set_line_spacing(sn.get_mat_line_spacing().unwrap());

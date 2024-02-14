@@ -651,12 +651,13 @@ impl ScenarioNode {
                 match n {
                     Item::Page(_)   => true,
                     Item::Pmat(_)   => true,
-                    Item::Mat(_)    => true,
+                    Item::Mat(_)    => false,
                     _ => false,
                 }
             },
             Item::Mat(_) => {
                 match n {
+                    Item::Pmat(_)  => true,
                     Item::Mat(_)   => true,
                     Item::Ovimg(_) => true,
                     _ => false,

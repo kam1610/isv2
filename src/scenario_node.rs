@@ -657,7 +657,7 @@ impl ScenarioNode {
             },
             Item::Mat(_) => {
                 match n {
-                    Item::Pmat(_)  => true,
+                    Item::Page(_)  => true,
                     Item::Mat(_)   => true,
                     Item::Ovimg(_) => true,
                     _ => false,

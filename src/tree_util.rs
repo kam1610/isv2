@@ -194,7 +194,7 @@ pub mod tree_manipulate{
                         scenario_node::Item::Mat(_) |
                         scenario_node::Item::Ovimg(_) => {
                             if sel_belong_row(&sel_sno, &sel, &ScenarioNode::get_belong_page).is_ok() ||
-                                ScenarioNode::get_belong_scene(&sel_sno.get_node()).is_some() {
+                                ScenarioNode::get_belong_scene(&sel_sno.get_node()).is_some(){
                                     ope_type = Operation::AddNeighbor;
                                 } else {
                                     return;

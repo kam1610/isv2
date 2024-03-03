@@ -1210,6 +1210,9 @@ impl ScenarioNode {
     // is_mat //////////////////////////////////////////////
     pub fn is_mat(&self) -> bool{
         if let Item::Mat(_) = &(*self.value.borrow()) { true } else { false } }
+    // is_page /////////////////////////////////////////////
+    pub fn is_page(&self) -> bool{
+        if let Item::Page(_) = &(*self.value.borrow()) { true } else { false } }
     // is_scene ////////////////////////////////////////////
     pub fn is_scene(&self) -> bool{
         if let Item::Scene(_) = &(*self.value.borrow()) { true } else { false } }

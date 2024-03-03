@@ -214,12 +214,10 @@ pub mod view_actions{
                 let row = sel.item(n as u32).unwrap().downcast::<TreeListRow>().expect("row");
                 let sno = row.item().and_downcast::<ScenarioNodeObject>().expect("sno is expd");
 
-                match &*sno.get_node().value.borrow() {
-                    Item::Group    => { row.set_expanded(true ); },
-                    Item::Scene(_) => { row.set_expanded(true ); },
-                    Item::Page(_)  => { row.set_expanded(false); },
-                    _ => ()
-                }
+                let sn = sno.get_node();
+                if sn.is_group() { row.set_expanded(true ); } else
+                if sn.is_scene() { row.set_expanded(true ); } else
+                if sn.is_page()  { row.set_expanded(false); }
 
                 n+=1;
             }

@@ -652,7 +652,10 @@ impl PreviewWindow {
                      pc  : &gtk::pango::Context,
                      cr  : &cairo::Context,
                      _w: i32, _h: i32){
-        for area_item in area {
+        let mut area = area.clone();
+        area.reverse();
+
+        for ref area_item in area {
             let (sn_source, sn_ref) = area_item;
             let sn = if let Some(ref_target) = sn_ref { ref_target } else { sn_source };
 
@@ -676,7 +679,7 @@ impl PreviewWindow {
 
             if sn.get_mat_bg_en().unwrap() { // image mat
                 if let Err(e) = Self::draw_bg_mat_img( &self.imp().parameter.borrow().upgrade().unwrap(),
-                                                        sn,
+                                                        &sn,
                                                         &mut self.imp().img_mat_buf.borrow_mut(),
                                                         cr,
                                                         x, y, w, h) {

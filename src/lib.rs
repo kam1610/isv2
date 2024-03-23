@@ -17,8 +17,13 @@ mod tree_util;
 mod view_menu;
 mod status_bar;
 mod text_edit_util;
+mod keybind;
 
 use std::path::PathBuf;
+use std::fs::File;
+use std::io::BufRead;
+use std::io::BufReader;
+use std::env;
 use std::rc::Rc;
 
 use gtk::Application;
@@ -70,6 +75,7 @@ use crate::tree_util::tree_manipulate;
 use crate::view_menu::view_actions;
 use crate::status_bar::StatusBar;
 use crate::text_edit_util::text_edit;
+use crate::keybind::KeyBind;
 
 // load_css ////////////////////////////////////////////////
 pub fn load_css() {
@@ -418,6 +424,17 @@ pub fn build_ui(app: &Application) {
     let select_tree_node = view_actions::act_tree_node_sel(selection_model.clone());
     window.add_action(&select_tree_node);
 
+    // file
+    if let Ok(mut cur_exe_path) = env::current_exe() {
+        cur_exe_path.pop();
+        cur_exe_path.push("keybind.conf");
+    } else {
+
+    }
+
+
+
+
     let node_view_acts = vec![
         ("forward nonde",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::FwdNode  as i32, "<Alt>n"),
         ("backward node",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::BackNode as i32, "<Alt>p"),
@@ -425,8 +442,8 @@ pub fn build_ui(app: &Application) {
         // ("backward node 3", view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::BackNode as i32, "<Alt>p"),
         ("forward page",    view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::FwdPage  as i32, "<Alt><Shift>n"),
         ("backward page",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::BackPage as i32, "<Alt><Shift>p"),
-        ("expand node",     view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::Collapse as i32, "<Alt>c"),
-        ("collapse node",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::Expand   as i32, "<Alt>e"),];
+        ("expand node",     view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::Collapse as i32, "<Alt>e"),
+        ("collapse node",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::Expand   as i32, "<Alt>c"),];
     assign_acti32_and_accelkey(&node_view_acts, &menu_node_view, &app);
 
     // full screen

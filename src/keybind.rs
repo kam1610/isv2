@@ -3,6 +3,13 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::env;
 use std::fmt;
+use gtk::Application;
+use gtk::gio::Menu;
+use gtk::gio::MenuItem;
+use gtk::prelude::*;
+
+use anyhow::Context;
+use anyhow::Result;
 
 pub struct KeyBind{
     entries: HashMap<String, (String, String)>,
@@ -44,6 +51,29 @@ impl KeyBind{
     pub fn get(&self, key: &str) -> Option<&(String, String)>{
         self.entries.get(key)
     }
+    // assign //////////////////////////////////////////////
+    pub fn assign_acti32_and_accelkey(&self,
+                                      acts       : &Vec<(&str, &str, i32)>,
+                                      parent_menu: &Menu,
+                                      app        : &Application,
+                                      win_or_app : &str){
+        let _ = acts.iter()
+            .map(|act|{
+                let entry;
+                entry = {if let Some(e) = self.get(act.0) {e} else {
+                    println!("[keybind] entry of {} is not found", act.0);
+                    return;}};
+
+                let menu_act = MenuItem::new(Some(&entry.0),
+                                             Some(&(win_or_app.to_string() +
+                                                    act.1 +
+                                                    "(" + &(act.2).to_string() + ")")));
+                parent_menu.append_item(&menu_act);
+                app.set_accels_for_action(&(win_or_app.to_string() + act.1 +
+                                            "(" + &(act.2).to_string() + ")"),
+                                          &[&entry.1]);
+            }).collect::<Vec<_>>();
+    }
 }
 // fmt /////////////////////////////////////////////////////
 impl fmt::Display for KeyBind{
@@ -70,8 +100,8 @@ mod test{
         println!("KeyBind: ");
         println!("{}", kb);
 
-        println!("{:?}", kb.get("FwdNode"));
-        println!("{:?}", kb.get("AddTreeNodeGroup"));
-        println!("{:?}", kb.get("_not_inserted_"));
+        println!("{:?}\n", kb.get("FwdNode"));
+        println!("{:?}\n", kb.get("AddTreeNodeGroup"));
+        println!("{:?}\n", kb.get("_not_inserted_"));
     }
 }

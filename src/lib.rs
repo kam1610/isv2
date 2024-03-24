@@ -424,17 +424,9 @@ pub fn build_ui(app: &Application) {
     let select_tree_node = view_actions::act_tree_node_sel(selection_model.clone());
     window.add_action(&select_tree_node);
 
-    // file
-    if let Ok(mut cur_exe_path) = env::current_exe() {
-        cur_exe_path.pop();
-        cur_exe_path.push("keybind.conf");
-    } else {
 
-    }
-
-
-
-
+    // TODO: ファイルからの読み出し / keybind.rs に置き換え
+    /*
     let node_view_acts = vec![
         ("forward nonde",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::FwdNode  as i32, "<Alt>n"),
         ("backward node",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::BackNode as i32, "<Alt>p"),
@@ -445,6 +437,25 @@ pub fn build_ui(app: &Application) {
         ("expand node",     view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::Collapse as i32, "<Alt>e"),
         ("collapse node",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::Expand   as i32, "<Alt>c"),];
     assign_acti32_and_accelkey(&node_view_acts, &menu_node_view, &app);
+    */
+    // 引数のベクタ(3要素のタプル):
+    //   {keybind.confのキー値, アクション名(文字), 引数(i32)}
+
+    let node_view_acts = vec![
+        ("FwdNode",      view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::FwdNode  as i32),
+        ("BackNode",     view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::BackNode as i32),
+        ("FwdPage",      view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::FwdPage  as i32),
+        ("BackPage",     view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::BackPage as i32),
+        ("CollapseNode", view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::Collapse as i32),
+        ("ExpandNode",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::Expand   as i32),];
+    let keybind_conf = KeyBind::init();
+    keybind_conf.assign_acti32_and_accelkey(&node_view_acts,
+                                            &menu_node_view,
+                                            &app,
+                                            "win.");
+
+    ////////////////////////////////////////////////////////
+
 
     // full screen
     let act_full_screen_preview = view_actions::act_preview(mediator.clone(),
@@ -520,6 +531,7 @@ pub fn build_ui(app: &Application) {
 
             }).collect::<Vec<_>>();
     }
+
     // rm_tree_node ////////////////////////////////////////
     let rm_tree_node = tree_manipulate::act_tree_node_rm(selection_model.clone(),
                                                          history.clone(),

@@ -450,6 +450,15 @@ pub fn build_ui(app: &Application) {
                                             &menu_node_view,
                                             &app,
                                             "win.");
+
+    // toggle_bgimg ////////////////////////////////////
+    let act_toggle_bgimg = view_actions::act_toggle_bgimg(param.clone(), mediator.clone(), selection_model.clone());
+    window.add_action(&act_toggle_bgimg);
+    keybind_conf.assign_acti32_and_accelkey(&vec![("ToggleBgimg", view_actions::ACT_TOGGLE_BGIMG, None)],
+                                            &menu_node_view,
+                                            &app,
+                                            "win.");
+
     ////////////////////////////////////////////////////////
     // full screen
     let act_full_screen_preview = view_actions::act_preview(mediator.clone(),
@@ -459,13 +468,6 @@ pub fn build_ui(app: &Application) {
     let full_screen_item = MenuItem::new(Some("full screen preview"),
                                          Some( &("app.".to_string() + view_actions::ACT_PREVIEW)));
     menu_node_view.append_item(&full_screen_item);
-
-    // toggle_bgimg ////////////////////////////////////
-    let act_toggle_bgimg = view_actions::act_toggle_bgimg(param.clone(), mediator.clone(), selection_model.clone());
-    app.add_action(&act_toggle_bgimg);
-    let menu_item_toggle_bgimg = MenuItem::new(Some("_ToggleBgimg"),
-                                               Some( &("app.".to_string() + view_actions::ACT_TOGGLE_BGIMG) ));
-    menu_node_view.append_item(&menu_item_toggle_bgimg);
 
     ////////////////////////////////////////////////////////
     // preferences menu ////////////////////////////////////
@@ -574,8 +576,6 @@ pub fn build_ui(app: &Application) {
 
     ////////////////////////////////////////////////////////
     // shortcut ////////////////////////////////////////////
-    app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_TOGGLE_BGIMG),     &["<Ctrl>b"]);
-
     app.set_accels_for_action(&("win.".to_string() + view_actions::ACT_FOCUS_VIEW +
                                 "(" + &(view_actions::ActFocusViewCmd::TextView as i32).to_string() + ")"), &["F2"]);
     app.set_accels_for_action(&("win.".to_string() + view_actions::ACT_FOCUS_VIEW +

@@ -424,39 +424,41 @@ pub fn build_ui(app: &Application) {
     let select_tree_node = view_actions::act_tree_node_sel(selection_model.clone());
     window.add_action(&select_tree_node);
 
-
-    // TODO: ファイルからの読み出し / keybind.rs に置き換え
-    /*
+    //   {key value in keybind.conf, action name(String), arg(i32)}
     let node_view_acts = vec![
-        ("forward nonde",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::FwdNode  as i32, "<Alt>n"),
-        ("backward node",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::BackNode as i32, "<Alt>p"),
-        // ("forward nonde 3",      view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::FwdNode  as i32, "<Alt>n"), // considerating good shortcut key
-        // ("backward node 3", view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::BackNode as i32, "<Alt>p"),
-        ("forward page",    view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::FwdPage  as i32, "<Alt><Shift>n"),
-        ("backward page",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::BackPage as i32, "<Alt><Shift>p"),
-        ("expand node",     view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::Collapse as i32, "<Alt>e"),
-        ("collapse node",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::Expand   as i32, "<Alt>c"),];
-    assign_acti32_and_accelkey(&node_view_acts, &menu_node_view, &app);
-    */
-    // 引数のベクタ(3要素のタプル):
-    //   {keybind.confのキー値, アクション名(文字), 引数(i32)}
-
-    let node_view_acts = vec![
-        ("FwdNode",      view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::FwdNode  as i32),
-        ("BackNode",     view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::BackNode as i32),
-        ("FwdPage",      view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::FwdPage  as i32),
-        ("BackPage",     view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::BackPage as i32),
-        ("CollapseNode", view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::Collapse as i32),
-        ("ExpandNode",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::Expand   as i32),];
+        ("FwdNode",       view_actions::ACT_TREE_NODE_SEL,  view_actions::ActTreeNodeSelCmd::FwdNode  as i32),
+        ("BackNode",      view_actions::ACT_TREE_NODE_SEL,  view_actions::ActTreeNodeSelCmd::BackNode as i32),
+        ("FwdPage",       view_actions::ACT_TREE_NODE_SEL,  view_actions::ActTreeNodeSelCmd::FwdPage  as i32),
+        ("BackPage",      view_actions::ACT_TREE_NODE_SEL,  view_actions::ActTreeNodeSelCmd::BackPage as i32),
+        ("CollapseNode",  view_actions::ACT_TREE_NODE_SEL,  view_actions::ActTreeNodeSelCmd::Collapse as i32),
+        ("ExpandNode",    view_actions::ACT_TREE_NODE_SEL,  view_actions::ActTreeNodeSelCmd::Expand   as i32),];
     let keybind_conf = KeyBind::init();
     keybind_conf.assign_acti32_and_accelkey(&node_view_acts,
                                             &menu_node_view,
                                             &app,
                                             "win.");
 
+    let act_close_all_page = view_actions::act_close_all_page(selection_model.clone());
+    window.add_action(&act_close_all_page);
+    // let menu_item_close_all_page = MenuItem::new(Some("CloseAll_Page"),
+    //                                              Some( &("win.".to_string() + view_actions::ACT_CLOSE_ALL_PAGE) ));
+    //menu_node_view.append_item(&menu_item_close_all_page);
+
+    let act_close_all_scene = view_actions::act_close_all_scene(selection_model.clone());
+    window.add_action(&act_close_all_scene);
+    // let menu_item_close_all_scene = MenuItem::new(Some("CloseAll_Scene"),
+    //                                               Some( &("win.".to_string() + view_actions::ACT_CLOSE_ALL_SCENE) ));
+    // menu_node_view.append_item(&menu_item_close_all_scene);
+    let node_view_acts2 = vec![
+        ("CloseAllPage",  view_actions::ACT_CLOSE_ALL_PAGE,  0)];
+    keybind_conf.assign_acti32_and_accelkey(&node_view_acts2,
+                                            &menu_node_view,
+                                            &app,
+                                            "win.");
+    //app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_CLOSE_ALL_PAGE  ), &["<Ctrl>bracketright"]);
+
+
     ////////////////////////////////////////////////////////
-
-
     // full screen
     let act_full_screen_preview = view_actions::act_preview(mediator.clone(),
                                                             param.clone(),
@@ -465,19 +467,6 @@ pub fn build_ui(app: &Application) {
     let full_screen_item = MenuItem::new(Some("full screen preview"),
                                          Some( &("app.".to_string() + view_actions::ACT_PREVIEW)));
     menu_node_view.append_item(&full_screen_item);
-
-    // close_all_page //////////////////////////////////////
-    let act_close_all_page = view_actions::act_close_all_page(selection_model.clone());
-    app.add_action(&act_close_all_page);
-    let menu_item_close_all_page = MenuItem::new(Some("CloseAll_Page"),
-                                                 Some( &("app.".to_string() + view_actions::ACT_CLOSE_ALL_PAGE) ));
-    menu_node_view.append_item(&menu_item_close_all_page);
-
-    let act_close_all_scene = view_actions::act_close_all_scene(selection_model.clone());
-    app.add_action(&act_close_all_scene);
-    let menu_item_close_all_scene = MenuItem::new(Some("CloseAll_Scene"),
-                                                  Some( &("app.".to_string() + view_actions::ACT_CLOSE_ALL_SCENE) ));
-    menu_node_view.append_item(&menu_item_close_all_scene);
 
     // toggle_bgimg ////////////////////////////////////
     let act_toggle_bgimg = view_actions::act_toggle_bgimg(param.clone(), mediator.clone(), selection_model.clone());
@@ -593,7 +582,6 @@ pub fn build_ui(app: &Application) {
 
     ////////////////////////////////////////////////////////
     // shortcut ////////////////////////////////////////////
-    app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_CLOSE_ALL_PAGE  ), &["<Ctrl>bracketright"]);
     app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_TOGGLE_BGIMG),     &["<Ctrl>b"]);
 
     app.set_accels_for_action(&("win.".to_string() + view_actions::ACT_FOCUS_VIEW +

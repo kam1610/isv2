@@ -64,13 +64,14 @@ impl KeyBind{
                     println!("[keybind] entry of {} is not found", act.0);
                     return;}};
 
+                let act_desc =
+                    win_or_app.to_string() + act.1 +
+                    "(" + &(act.2).to_string() + ")";
+
                 let menu_act = MenuItem::new(Some(&entry.0),
-                                             Some(&(win_or_app.to_string() +
-                                                    act.1 +
-                                                    "(" + &(act.2).to_string() + ")")));
+                                             Some(&act_desc));
                 parent_menu.append_item(&menu_act);
-                app.set_accels_for_action(&(win_or_app.to_string() + act.1 +
-                                            "(" + &(act.2).to_string() + ")"),
+                app.set_accels_for_action(&act_desc,
                                           &[&entry.1]);
             }).collect::<Vec<_>>();
     }

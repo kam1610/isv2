@@ -426,12 +426,12 @@ pub fn build_ui(app: &Application) {
 
     //   {key value in keybind.conf, action name(String), arg(i32)}
     let node_view_acts = vec![
-        ("FwdNode",       view_actions::ACT_TREE_NODE_SEL,  view_actions::ActTreeNodeSelCmd::FwdNode  as i32),
-        ("BackNode",      view_actions::ACT_TREE_NODE_SEL,  view_actions::ActTreeNodeSelCmd::BackNode as i32),
-        ("FwdPage",       view_actions::ACT_TREE_NODE_SEL,  view_actions::ActTreeNodeSelCmd::FwdPage  as i32),
-        ("BackPage",      view_actions::ACT_TREE_NODE_SEL,  view_actions::ActTreeNodeSelCmd::BackPage as i32),
-        ("CollapseNode",  view_actions::ACT_TREE_NODE_SEL,  view_actions::ActTreeNodeSelCmd::Collapse as i32),
-        ("ExpandNode",    view_actions::ACT_TREE_NODE_SEL,  view_actions::ActTreeNodeSelCmd::Expand   as i32),];
+        ("FwdNode",       view_actions::ACT_TREE_NODE_SEL,  Some(view_actions::ActTreeNodeSelCmd::FwdNode  as i32)),
+        ("BackNode",      view_actions::ACT_TREE_NODE_SEL,  Some(view_actions::ActTreeNodeSelCmd::BackNode as i32)),
+        ("FwdPage",       view_actions::ACT_TREE_NODE_SEL,  Some(view_actions::ActTreeNodeSelCmd::FwdPage  as i32)),
+        ("BackPage",      view_actions::ACT_TREE_NODE_SEL,  Some(view_actions::ActTreeNodeSelCmd::BackPage as i32)),
+        ("CollapseNode",  view_actions::ACT_TREE_NODE_SEL,  Some(view_actions::ActTreeNodeSelCmd::Collapse as i32)),
+        ("ExpandNode",    view_actions::ACT_TREE_NODE_SEL,  Some(view_actions::ActTreeNodeSelCmd::Expand   as i32)),];
     let keybind_conf = KeyBind::init();
     keybind_conf.assign_acti32_and_accelkey(&node_view_acts,
                                             &menu_node_view,
@@ -440,24 +440,16 @@ pub fn build_ui(app: &Application) {
 
     let act_close_all_page = view_actions::act_close_all_page(selection_model.clone());
     window.add_action(&act_close_all_page);
-    // let menu_item_close_all_page = MenuItem::new(Some("CloseAll_Page"),
-    //                                              Some( &("win.".to_string() + view_actions::ACT_CLOSE_ALL_PAGE) ));
-    //menu_node_view.append_item(&menu_item_close_all_page);
-
     let act_close_all_scene = view_actions::act_close_all_scene(selection_model.clone());
     window.add_action(&act_close_all_scene);
-    // let menu_item_close_all_scene = MenuItem::new(Some("CloseAll_Scene"),
-    //                                               Some( &("win.".to_string() + view_actions::ACT_CLOSE_ALL_SCENE) ));
-    // menu_node_view.append_item(&menu_item_close_all_scene);
+
     let node_view_acts2 = vec![
-        ("CloseAllPage",  view_actions::ACT_CLOSE_ALL_PAGE,  0)];
+        ("CloseAllPage",   view_actions::ACT_CLOSE_ALL_PAGE,  None),
+        ("CloseAllScene",  view_actions::ACT_CLOSE_ALL_SCENE, None)];
     keybind_conf.assign_acti32_and_accelkey(&node_view_acts2,
                                             &menu_node_view,
                                             &app,
                                             "win.");
-    //app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_CLOSE_ALL_PAGE  ), &["<Ctrl>bracketright"]);
-
-
     ////////////////////////////////////////////////////////
     // full screen
     let act_full_screen_preview = view_actions::act_preview(mediator.clone(),

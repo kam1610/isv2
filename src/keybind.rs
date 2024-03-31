@@ -53,7 +53,7 @@ impl KeyBind{
     }
     // assign //////////////////////////////////////////////
     pub fn assign_acti32_and_accelkey(&self,
-                                      acts       : &Vec<(&str, &str, i32)>,
+                                      acts       : &Vec<(&str, &str, Option<i32>)>,
                                       parent_menu: &Menu,
                                       app        : &Application,
                                       win_or_app : &str){
@@ -64,15 +64,14 @@ impl KeyBind{
                     println!("[keybind] entry of {} is not found", act.0);
                     return;}};
 
-                let act_desc =
-                    win_or_app.to_string() + act.1 +
-                    "(" + &(act.2).to_string() + ")";
+                let mut act_desc = win_or_app.to_string() + act.1;
+                if let Some(int_arg) = act.2 {
+                    act_desc += &("(".to_string() + &int_arg.to_string() + ")");
+                }
 
-                let menu_act = MenuItem::new(Some(&entry.0),
-                                             Some(&act_desc));
+                let menu_act = MenuItem::new(Some(&entry.0), Some(&act_desc));
                 parent_menu.append_item(&menu_act);
-                app.set_accels_for_action(&act_desc,
-                                          &[&entry.1]);
+                app.set_accels_for_action(&act_desc, &[&entry.1]);
             }).collect::<Vec<_>>();
     }
 }

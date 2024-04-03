@@ -683,7 +683,11 @@ impl Isv2FileDialogBox {
         file_dialog.set_filters(Some(&model));
         file_dialog.set_default_filter(Some(&file_filter)); // https://gitlab.gnome.org/GNOME/gtk/-/issues/6071
 
-        let bgimg = sno.get_node().get_scene_bgimg();
+        let bgimg;
+        bgimg = if sno.get_node().is_scene() { sno.get_node().get_scene_bgimg() } else
+                if sno.get_node().is_mat()   { sno.get_node().get_mat_bgimg()   } else
+                if sno.get_node().is_pmat()  { sno.get_node().get_mat_bgimg()   } else
+                { None };
         let file_entry_str =
             if let Some(ref p) = bgimg {
                 p.to_str().unwrap().clone()
@@ -718,7 +722,7 @@ impl Isv2FileDialogBox {
                                       if sno.get_node().is_scene() {
                                           sno.get_node().set_scene_bgimg(
                                               Some(f.path().unwrap()))
-                                      } else if sno.get_node().is_mat() {
+                                      } else if sno.get_node().is_mat() || sno.get_node().is_pmat(){
                                           sno.get_node().set_mat_bgimg(
                                               Some(f.path().unwrap()))
                                       } else {
@@ -733,8 +737,10 @@ impl Isv2FileDialogBox {
 
         //let enable_check = CheckButton::builder().active(sno.get_node().get_scene_bg_en().unwrap()).build();
         let enable_check = CheckButton::new();
-        if (sno.get_node().is_scene() && sno.get_node().get_scene_bg_en().unwrap()) ||
-            (sno.get_node().is_mat() && sno.get_node().get_mat_bg_en().unwrap()) {
+        if (sno.get_node().is_scene() &&
+            sno.get_node().get_scene_bg_en().unwrap()) ||
+            ((sno.get_node().is_mat() || sno.get_node().is_pmat()) &&
+             sno.get_node().get_mat_bg_en().unwrap()) {
                 enable_check.set_active(true);
             } else {
                 enable_check.set_active(false);
@@ -745,7 +751,7 @@ impl Isv2FileDialogBox {
                    @strong sno => move|chk|{
                        if sno.get_node().is_scene() {
                            sno.get_node().set_scene_bg_en(chk.is_active());
-                       } else if sno.get_node().is_mat() {
+                       } else if sno.get_node().is_mat() || sno.get_node().is_pmat(){
                            sno.get_node().set_mat_bg_en(chk.is_active());
                        } else {
                            println!("(Isv2FileDialogBox) unsupported node!");
@@ -1061,11 +1067,18 @@ fn set_file_dialog_initial_path(file_dialog: &FileDialog,
         file_dialog.set_initial_folder(Some(&gio::File::for_path(&cur_dir)));
     }
     let mut prj_path = parameter.property::<PathBuf>("project_dir");
-    if let Some(p) = sno.get_node().get_scene_bgimg() {
+
+    let p;
+    p = if sno.get_node().is_scene() { sno.get_node().get_scene_bgimg() } else
+        if sno.get_node().is_mat()   { sno.get_node().get_mat_bgimg()   } else
+        if sno.get_node().is_pmat()  { sno.get_node().get_mat_bgimg()   } else
+        { None };
+    if let Some(p) = p {
         prj_path.push(&p);
     } else {
-        println!("(set_file_dialog_initial_path) scene_bgimg is not set yet ");
+        println!("(set_file_dialog_initial_path) scene_bgimg is not set yet");
     }
+
     if let Ok(m) = std::fs::metadata(prj_path.clone()){
         if m.is_file() {
             file_dialog.set_initial_file(Some(&gio::File::for_path(prj_path.clone())));

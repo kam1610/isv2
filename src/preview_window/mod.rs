@@ -751,7 +751,7 @@ impl PreviewWindow {
 
             cr.set_line_join(cairo::LineJoin::Round);
 
-            cr.save().expect("save context before stroke text");
+            cr.save().expect("save context before stroke text decoration");
             cr.move_to(x, y);
             if sn.get_mat_vertical().unwrap() {
                 cr.rotate(0.5 * glib_sys::G_PI); }
@@ -763,9 +763,10 @@ impl PreviewWindow {
                 if let Some( w )  = sn.get_mat_font_outl_2() { w } else { return; };
             cr.set_line_width(font_outl_2);
             cr.stroke().expect("stroke text");
-            cr.restore().expect("restore context");
+            cr.restore().expect("restore context for stroke text decorateion");
 
             // text foreground
+            cr.save().expect("save context before stroke text");
             cr.move_to(x, y);
             if sn.get_mat_vertical().unwrap() {
                 cr.rotate(0.5 * glib_sys::G_PI); }
@@ -773,6 +774,7 @@ impl PreviewWindow {
                 if let Some( tuple )  = sn.get_mat_font_rgba_tuple_f64() { tuple } else { return; };
             cr.set_source_rgba( r, g, b, a );
             pangocairo::show_layout(cr, &layout);
+            cr.restore().expect("restore context for stroke text");
         }
 
     }

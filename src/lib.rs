@@ -20,10 +20,6 @@ mod text_edit_util;
 mod keybind;
 
 use std::path::PathBuf;
-use std::fs::File;
-use std::io::BufRead;
-use std::io::BufReader;
-use std::env;
 use std::rc::Rc;
 
 use gtk::Application;
@@ -364,24 +360,6 @@ pub fn build_ui(app: &Application) {
         }
     }));
 
-    ////////////////////////////////////////////////////////
-    // util for assign menu item and shortcut
-    fn assign_acti32_and_accelkey(acts       : &Vec<(&str, &str, i32, &str)>,
-                                  parent_menu: &Menu,
-                                  app        : &Application){
-        let _ = acts.iter()
-            .map(|act|{
-                let menu_act = MenuItem::new(Some(act.0),
-                                             Some(&("win.".to_string() +
-                                                    act.1 +
-                                                    "(" + &(act.2).to_string() + ")")));
-                parent_menu.append_item(&menu_act);
-                app.set_accels_for_action(&("win.".to_string() + act.1 +
-                                            "(" + &(act.2).to_string() + ")"),
-                                          &[act.3]);
-            }).collect::<Vec<_>>();
-    }
-
     // menu ////////////////////////////////////////////////
     let menu      = Menu::new();
 
@@ -434,7 +412,7 @@ pub fn build_ui(app: &Application) {
         ("ExpandNode",    view_actions::ACT_TREE_NODE_SEL,  Some(view_actions::ActTreeNodeSelCmd::Expand   as i32)),];
     let keybind_conf = KeyBind::init();
     keybind_conf.assign_acti32_and_accelkey(&node_view_acts,
-                                            &menu_node_view,
+                                            Some(&menu_node_view),
                                             &app,
                                             "win.");
 
@@ -447,7 +425,7 @@ pub fn build_ui(app: &Application) {
         ("CloseAllPage",   view_actions::ACT_CLOSE_ALL_PAGE,  None),
         ("CloseAllScene",  view_actions::ACT_CLOSE_ALL_SCENE, None)];
     keybind_conf.assign_acti32_and_accelkey(&node_view_acts2,
-                                            &menu_node_view,
+                                            Some(&menu_node_view),
                                             &app,
                                             "win.");
 
@@ -455,7 +433,7 @@ pub fn build_ui(app: &Application) {
     let act_toggle_bgimg = view_actions::act_toggle_bgimg(param.clone(), mediator.clone(), selection_model.clone());
     window.add_action(&act_toggle_bgimg);
     keybind_conf.assign_acti32_and_accelkey(&vec![("ToggleBgimg", view_actions::ACT_TOGGLE_BGIMG, None)],
-                                            &menu_node_view,
+                                            Some(&menu_node_view),
                                             &app,
                                             "win.");
 
@@ -501,7 +479,7 @@ pub fn build_ui(app: &Application) {
         ("AddTreeNodeMat",   tree_manipulate::ACT_TREE_NODE_ADD, Some(tree_manipulate::ActTreeNodeAddCmd::Mat   as i32)),
         ("AddTreeNodePmat",  tree_manipulate::ACT_TREE_NODE_ADD, Some(tree_manipulate::ActTreeNodeAddCmd::Pmat  as i32)),];
     keybind_conf.assign_acti32_and_accelkey(&tree_manipulate_acts,
-                                            &menu_tree_edit,
+                                            Some(&menu_tree_edit),
                                             &app,
                                             "win.");
 
@@ -511,7 +489,7 @@ pub fn build_ui(app: &Application) {
                                                          mediator.clone());
     window.add_action(&rm_tree_node);
     keybind_conf.assign_acti32_and_accelkey(&vec![("RemoveTreeNode", tree_manipulate::ACT_TREE_NODE_RM, None)],
-                                            &menu_tree_edit,
+                                            Some(&menu_tree_edit),
                                             &app,
                                             "win.");
 
@@ -557,7 +535,7 @@ pub fn build_ui(app: &Application) {
         ("TextCut",          text_edit::ACT_C_N_P_TEXT,  Some(text_edit::ActCnPTextCmd::Cut          as i32)),
         ("TextPaste",        text_edit::ACT_C_N_P_TEXT,  Some(text_edit::ActCnPTextCmd::Paste        as i32)),];
     keybind_conf.assign_acti32_and_accelkey(&text_edit_acts,
-                                            &menu_text_edit,
+                                            Some(&menu_text_edit),
                                             &app,
                                             "win.");
 
@@ -569,15 +547,14 @@ pub fn build_ui(app: &Application) {
     let focus_attr_box_action = view_actions::act_focus_attrbox(attribute_box.clone());
     window.add_action(&focus_attr_box_action);
 
-    ////////////////////////////////////////////////////////
-    // shortcut ////////////////////////////////////////////
-    app.set_accels_for_action(&("win.".to_string() + view_actions::ACT_FOCUS_VIEW +
-                                "(" + &(view_actions::ActFocusViewCmd::TextView as i32).to_string() + ")"), &["F2"]);
-    app.set_accels_for_action(&("win.".to_string() + view_actions::ACT_FOCUS_VIEW +
-                                "(" + &(view_actions::ActFocusViewCmd::TreeView as i32).to_string() + ")"), &["F3"]);
-    app.set_accels_for_action(&("win.".to_string() + view_actions::ACT_FOCUS_ATTRBOX)                     , &["F4"]);
-
-    app.set_accels_for_action("win.text_forward_char", &["<Alt>semicolon"]);
+    let focus_acts = vec![
+        ("FocusText", view_actions::ACT_FOCUS_VIEW, Some(view_actions::ActFocusViewCmd::TextView as i32)),
+        ("FocusTree", view_actions::ACT_FOCUS_VIEW, Some(view_actions::ActFocusViewCmd::TreeView as i32)),
+        ("FocusAttr", view_actions::ACT_FOCUS_ATTRBOX, None),];
+    keybind_conf.assign_acti32_and_accelkey(&focus_acts,
+                                            None,
+                                            &app,
+                                            "win.");
 
     // set attribute box after root is associated
     attribute_box.update_item_type(selection_model.clone());

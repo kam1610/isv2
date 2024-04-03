@@ -36,7 +36,6 @@ use gtk::prelude::*;
 use std::cell::Cell;
 use std::fs::OpenOptions;
 use std::fs::File;
-use std::fs::Metadata;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::str::FromStr;

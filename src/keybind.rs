@@ -8,9 +8,6 @@ use gtk::gio::Menu;
 use gtk::gio::MenuItem;
 use gtk::prelude::*;
 
-use anyhow::Context;
-use anyhow::Result;
-
 pub struct KeyBind{
     entries: HashMap<String, (String, String)>,
 }
@@ -54,7 +51,7 @@ impl KeyBind{
     // assign //////////////////////////////////////////////
     pub fn assign_acti32_and_accelkey(&self,
                                       acts       : &Vec<(&str, &str, Option<i32>)>,
-                                      parent_menu: &Menu,
+                                      parent_menu: Option<&Menu>,
                                       app        : &Application,
                                       win_or_app : &str){
         let _ = acts.iter()
@@ -69,8 +66,11 @@ impl KeyBind{
                     act_desc += &("(".to_string() + &int_arg.to_string() + ")");
                 }
 
-                let menu_act = MenuItem::new(Some(&entry.0), Some(&act_desc));
-                parent_menu.append_item(&menu_act);
+                if let Some(parent_menu) = parent_menu {
+                    let menu_act = MenuItem::new(Some(&entry.0), Some(&act_desc));
+                    parent_menu.append_item(&menu_act);
+                }
+
                 app.set_accels_for_action(&act_desc, &[&entry.1]);
             }).collect::<Vec<_>>();
     }

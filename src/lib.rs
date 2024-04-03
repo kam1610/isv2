@@ -533,31 +533,35 @@ pub fn build_ui(app: &Application) {
     window.add_action(&text_c_n_p_action);
 
     let text_edit_acts = vec![
-        ("forward char",         text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::FwdChar       as i32, "<Alt>semicolon"),
-        ("backward char",        text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::BackChar      as i32, "<Alt>J"),
-        ("forward word",         text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::FwdWord       as i32, "<Alt>o"),
-        ("backword word",        text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::BackWord      as i32, "<Alt>i"),
-        ("next line",            text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::NextLine      as i32, "<Alt>k"),
-        ("prev line",            text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::PrevLine      as i32, "<Alt>l"),
-        ("next line 3",          text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::NextLine3     as i32, "<Alt>9"),
-        ("prev line 3",          text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::PrevLine3     as i32, "<Alt>0"),
-        ("beginning line",       text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::BegLine       as i32, "<Ctrl>a"),
-        ("end line",             text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::EndLine       as i32, "<Ctrl>e"),
-        ("beginning buffer",     text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::BegBuff       as i32, "<Alt>less"),
-        ("end buffer",           text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::EndBuff       as i32, "<Alt>greater"),
-        ("delete backward char", text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::DelBackChar  as i32, "<Ctrl>h"),
-        ("delete char",          text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::DelChar      as i32, "<Ctrl>d"),
-        ("kill line",            text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::KillLine     as i32, "<Ctrl>k"),
-        ("backward kill word",   text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::BackKillWord as i32, "<Alt>h" ),
-        ("kill word",            text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::KillWord     as i32, "<Alt>d" ),
-        ("new line",             text_edit::ACT_INS_TEXT,    text_edit::ActInsTextCmd::NewLine      as i32, "<Ctrl>m"),
-        ("open line",            text_edit::ACT_INS_TEXT,    text_edit::ActInsTextCmd::OpenLine     as i32, "<Ctrl>o"),
-        ("dakuten",              text_edit::ACT_INS_TEXT,    text_edit::ActInsTextCmd::Dakuten      as i32, "<Ctrl>quoteright"),
-        ("copy text",            text_edit::ACT_C_N_P_TEXT,  text_edit::ActCnPTextCmd::Copy         as i32, "<Alt>w"),
-        ("cut text",             text_edit::ACT_C_N_P_TEXT,  text_edit::ActCnPTextCmd::Cut          as i32, "<Ctrl>w"),
-        ("paste text",           text_edit::ACT_C_N_P_TEXT,  text_edit::ActCnPTextCmd::Paste        as i32, "<Ctrl>y"),];
-    assign_acti32_and_accelkey(&text_edit_acts, &menu_text_edit, &app);
+        ("CursorFwdChar",    text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::FwdChar       as i32)),
+        ("CursorBackChar",   text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::BackChar      as i32)),
+        ("CursorFwdWord",    text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::FwdWord       as i32)),
+        ("CursorBackWord",   text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::BackWord      as i32)),
+        ("CursorNextLine",   text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::NextLine      as i32)),
+        ("CursorPrevLine",   text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::PrevLine      as i32)),
+        ("CursorNextLine3",  text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::NextLine3     as i32)),
+        ("CursorPrevLine3",  text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::PrevLine3     as i32)),
+        ("CursorBegLine",    text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::BegLine       as i32)),
+        ("CursorEndLine",    text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::EndLine       as i32)),
+        ("CursorBegBuff",    text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::BegBuff       as i32)),
+        ("CursorEndBuff",    text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::EndBuff       as i32)),
+        ("DelBackChar",      text_edit::ACT_DEL_TEXT,    Some(text_edit::ActDelTextCmd::DelBackChar  as i32)),
+        ("DelChar",          text_edit::ACT_DEL_TEXT,    Some(text_edit::ActDelTextCmd::DelChar      as i32)),
+        ("KillLine",         text_edit::ACT_DEL_TEXT,    Some(text_edit::ActDelTextCmd::KillLine     as i32)),
+        ("BackKillWord",     text_edit::ACT_DEL_TEXT,    Some(text_edit::ActDelTextCmd::BackKillWord as i32)),
+        ("KillWord",         text_edit::ACT_DEL_TEXT,    Some(text_edit::ActDelTextCmd::KillWord     as i32)),
+        ("NewLine",          text_edit::ACT_INS_TEXT,    Some(text_edit::ActInsTextCmd::NewLine      as i32)),
+        ("OpenLine",         text_edit::ACT_INS_TEXT,    Some(text_edit::ActInsTextCmd::OpenLine     as i32)),
+        ("Dakuten",          text_edit::ACT_INS_TEXT,    Some(text_edit::ActInsTextCmd::Dakuten      as i32)),
+        ("TextCopy",         text_edit::ACT_C_N_P_TEXT,  Some(text_edit::ActCnPTextCmd::Copy         as i32)),
+        ("TextCut",          text_edit::ACT_C_N_P_TEXT,  Some(text_edit::ActCnPTextCmd::Cut          as i32)),
+        ("TextPaste",        text_edit::ACT_C_N_P_TEXT,  Some(text_edit::ActCnPTextCmd::Paste        as i32)),];
+    keybind_conf.assign_acti32_and_accelkey(&text_edit_acts,
+                                            &menu_text_edit,
+                                            &app,
+                                            "win.");
 
+    // focus command ///////////////////////////////////////
     let focus_view_action = view_actions::act_focus_view(text_view.clone(),
                                                          list_view.clone());
     window.add_action(&focus_view_action);

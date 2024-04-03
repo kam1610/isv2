@@ -353,20 +353,19 @@ impl ScenarioNode {
         let mut vec = vec![p.clone()];
         loop{
             let p = Self::traverse(&mut vec);
-            if p.is_some() && p.clone().unwrap().is_scene() {
-                let prev_bgimg = p.clone().unwrap().get_scene_bgimg();
-                if prev_bgimg.is_none() { continue; }
-                let prev_abs_file = prev_base_dir.join( prev_bgimg.unwrap() );
-                let prev_abs_file = dunce::canonicalize(&prev_abs_file).expect("canonicalize");
-                if let Ok(new_relpath) = prev_abs_file.strip_prefix(new_base_dir) {
-                    p.unwrap().set_scene_bgimg(Some(new_relpath.to_path_buf()));
-                } else {
-                    p.unwrap().set_scene_bgimg(Some(prev_abs_file));
-                }
-            } else if p.is_none() {
+
+            if p.is_none(){
                 break;
             } else {
-                continue;
+                let node = p.clone().unwrap();
+                let prev_bgimg = {if let Some(p) = node.get_bgimg() { p } else { continue; }};
+                let prev_abs_file = prev_base_dir.join( prev_bgimg );
+                let prev_abs_file = dunce::canonicalize(&prev_abs_file).expect("canonicalize");
+                if let Ok(new_relpath) = prev_abs_file.strip_prefix(new_base_dir) {
+                    p.unwrap().set_bgimg(Some(new_relpath.to_path_buf()));
+                } else {
+                    p.unwrap().set_bgimg(Some(prev_abs_file));
+                }
             }
         }
     }
@@ -1205,6 +1204,23 @@ impl ScenarioNode {
                 s.bgcol.b = rgba[2];
             },
             _ => ()
+        }
+    }
+    // bgimg for scene/mat/pmat ////////////////////////////
+    pub fn get_bgimg(&self) -> Option<PathBuf>{
+        if self.is_scene() {
+            return self.get_scene_bgimg(); }
+        else if self.is_mat() || self.is_pmat() {
+            return self.get_mat_bgimg(); }
+        else {
+            return None;
+        }
+    }
+    pub fn set_bgimg(&self, p: Option<PathBuf>){
+        if self.is_scene() {
+            self.set_scene_bgimg(p);
+        } else if self.is_mat() || self.is_pmat() {
+            self.set_mat_bgimg(p);
         }
     }
     // is_mat //////////////////////////////////////////////

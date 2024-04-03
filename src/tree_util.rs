@@ -32,13 +32,14 @@ pub mod tree_manipulate{
     use crate::scenario_node_object::remove_node;
 
     pub const ACT_TREE_NODE_ADD   : &str = "tree_node_add";
-    pub const ACT_TREE_NODE_GROUP : &str = "add__group";
-    pub const ACT_TREE_NODE_SCENE : &str = "add__scene";
-    pub const ACT_TREE_NODE_PAGE  : &str = "add__page";
-    pub const ACT_TREE_NODE_MAT   : &str = "add__mat";
-    pub const ACT_TREE_NODE_OVIMG : &str = "add__ovimg";
-    pub const ACT_TREE_NODE_PMAT  : &str = "add__pmat";
-    pub const ACT_TREE_NODE_RM    : &str = "tree_node_rm";
+    #[derive(Debug, Clone, Copy)]
+    pub enum ActTreeNodeAddCmd {
+        Group, Scene,
+        Page,  Mat,
+        Ovimg, Pmat,
+    }
+
+    pub const ACT_TREE_NODE_RM     : &str = "tree_node_rm";
 
     // act_tree_mode_rm ////////////////////////////////////
     pub fn act_tree_node_rm(sel     : SingleSelection,
@@ -61,22 +62,22 @@ pub mod tree_manipulate{
 
     // act_tree_node_add ///////////////////////////////////
     pub fn act_tree_node_add(sel: SingleSelection, hist: Rc<OperationHistory>) -> SimpleAction{
-        let act = SimpleAction::new(ACT_TREE_NODE_ADD, Some(&VariantTy::STRING));
+        let act = SimpleAction::new(ACT_TREE_NODE_ADD, Some(&VariantTy::INT32));
         act.connect_activate(move|_act, val|{
             let val = val
                 .expect("expect val")
-                .get::<String>()
-                .expect("couldn't get &str val");
+                .get::<i32>()
+                .expect("couldn't get i32 val");
 
             // prepare new node ////////////////////////////
             let new_node = ScenarioNodeObject::new_with_seq_id(0, tree_manipulate::gen_id());
             *new_node.get_node().value.borrow_mut() = {
-                if      val == ACT_TREE_NODE_GROUP { scenario_node::Item::Group }
-                else if val == ACT_TREE_NODE_SCENE { scenario_node::Item::Scene(Scene::default()) }
-                else if val == ACT_TREE_NODE_PAGE  { scenario_node::Item::Page(Page::default()) }
-                else if val == ACT_TREE_NODE_MAT   { scenario_node::Item::Mat(Mat::default()) }
-                else if val == ACT_TREE_NODE_OVIMG { scenario_node::Item::Ovimg(Ovimg::default()) }
-                else if val == ACT_TREE_NODE_PMAT  { scenario_node::Item::Pmat(Mat::default()) }
+                if      val == ActTreeNodeAddCmd::Group as i32 { scenario_node::Item::Group }
+                else if val == ActTreeNodeAddCmd::Scene as i32 { scenario_node::Item::Scene(Scene::default()) }
+                else if val == ActTreeNodeAddCmd::Page  as i32 { scenario_node::Item::Page(Page::default()) }
+                else if val == ActTreeNodeAddCmd::Mat   as i32 { scenario_node::Item::Mat(Mat::default()) }
+                else if val == ActTreeNodeAddCmd::Ovimg as i32 { scenario_node::Item::Ovimg(Ovimg::default()) }
+                else if val == ActTreeNodeAddCmd::Pmat  as i32 { scenario_node::Item::Pmat(Mat::default()) }
                 else { println!("(act_tree_node_add) unexpected condition"); return; }
             };
             // judge the node can be added to selected position

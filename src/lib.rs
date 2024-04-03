@@ -493,27 +493,20 @@ pub fn build_ui(app: &Application) {
     let add_tree_node = tree_manipulate::act_tree_node_add(selection_model.clone(),
                                                            history.clone());
     window.add_action(&add_tree_node);
-    {
-        let node_acts = vec![ (tree_manipulate::ACT_TREE_NODE_GROUP, "<Ctrl><Shift>g"),
-                              (tree_manipulate::ACT_TREE_NODE_SCENE, "<Ctrl><Shift>s"),
-                              (tree_manipulate::ACT_TREE_NODE_PAGE,  "<Ctrl><Shift>p"),
-                              (tree_manipulate::ACT_TREE_NODE_MAT,   "<Ctrl><Shift>m"),
-                              (tree_manipulate::ACT_TREE_NODE_OVIMG, "<Ctrl><Shift>i"),
-                              (tree_manipulate::ACT_TREE_NODE_PMAT,  "<Ctrl><Shift>t") ];
-        let _ = node_acts.iter()
-            .map(|act| {
-                let menu_add_tree_node_type = MenuItem::new(Some(act.0),
-                                                            Some( &("win.".to_string() +
-                                                                    tree_manipulate::ACT_TREE_NODE_ADD +
-                                                                    "('" + act.0 + "')") ));
-                menu_tree_edit.append_item(&menu_add_tree_node_type);
-                // assign shortcut key
-                app.set_accels_for_action(&("win.".to_string() + tree_manipulate::ACT_TREE_NODE_ADD +
-                                            "('" + act.0 + "')"),
-                                          &[&act.1]);
 
-            }).collect::<Vec<_>>();
-    }
+    // TODO: !下記はi32でなくString引数!
+    let tree_manipulate_acts = vec![
+        ("AddTreeNodeGroup", tree_manipulate::ACT_TREE_NODE_ADD, Some(tree_manipulate::ActTreeNodeAddCmd::Group as i32)),
+        ("AddTreeNodeScene", tree_manipulate::ACT_TREE_NODE_ADD, Some(tree_manipulate::ActTreeNodeAddCmd::Scene as i32)),
+        ("AddTreeNodePage",  tree_manipulate::ACT_TREE_NODE_ADD, Some(tree_manipulate::ActTreeNodeAddCmd::Page  as i32)),
+        ("AddTreeNodeMat",   tree_manipulate::ACT_TREE_NODE_ADD, Some(tree_manipulate::ActTreeNodeAddCmd::Mat   as i32)),
+        ("AddTreeNodePmat",  tree_manipulate::ACT_TREE_NODE_ADD, Some(tree_manipulate::ActTreeNodeAddCmd::Ovimg as i32)),
+        ("RemoveTreeNode",   tree_manipulate::ACT_TREE_NODE_ADD, Some(tree_manipulate::ActTreeNodeAddCmd::Pmat  as i32)),];
+    let keybind_conf = KeyBind::init();
+    keybind_conf.assign_acti32_and_accelkey(&tree_manipulate_acts,
+                                            &menu_tree_edit,
+                                            &app,
+                                            "win.");
 
     // rm_tree_node ////////////////////////////////////////
     let rm_tree_node = tree_manipulate::act_tree_node_rm(selection_model.clone(),

@@ -83,17 +83,17 @@ impl AddNodeButton {
 
         add_node_button.button.set_label(label);
         add_node_button.button.connect_clicked(clone!(@strong add_node_button=> move |btn| {
-                let act_name = match &add_node_button.node_type {
-                    scenario_node::Item::Group    => tree_manipulate::ACT_TREE_NODE_GROUP,
-                    scenario_node::Item::Scene(_) => tree_manipulate::ACT_TREE_NODE_SCENE,
-                    scenario_node::Item::Page(_)  => tree_manipulate::ACT_TREE_NODE_PAGE,
-                    scenario_node::Item::Mat(_)   => tree_manipulate::ACT_TREE_NODE_MAT,
-                    scenario_node::Item::Ovimg(_) => tree_manipulate::ACT_TREE_NODE_OVIMG,
-                    scenario_node::Item::Pmat(_)  => tree_manipulate::ACT_TREE_NODE_PMAT
+                let act_arg = match &add_node_button.node_type {
+                    scenario_node::Item::Group    => tree_manipulate::ActTreeNodeAddCmd::Group,
+                    scenario_node::Item::Scene(_) => tree_manipulate::ActTreeNodeAddCmd::Scene,
+                    scenario_node::Item::Page(_)  => tree_manipulate::ActTreeNodeAddCmd::Page,
+                    scenario_node::Item::Mat(_)   => tree_manipulate::ActTreeNodeAddCmd::Mat,
+                    scenario_node::Item::Ovimg(_) => tree_manipulate::ActTreeNodeAddCmd::Ovimg,
+                    scenario_node::Item::Pmat(_)  => tree_manipulate::ActTreeNodeAddCmd::Pmat,
                 };
                 btn.activate_action( &("win.".to_string() +
                                        tree_manipulate::ACT_TREE_NODE_ADD),
-                                        Some( &act_name.to_variant() ) ).expect("(AddNodeButton) invalid action");
+                                        Some( &(act_arg as i32).to_variant() ) ).expect("(AddNodeButton) invalid action");
             }));
 
         add_node_button

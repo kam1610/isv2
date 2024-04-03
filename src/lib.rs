@@ -494,15 +494,12 @@ pub fn build_ui(app: &Application) {
                                                            history.clone());
     window.add_action(&add_tree_node);
 
-    // TODO: !下記はi32でなくString引数!
     let tree_manipulate_acts = vec![
         ("AddTreeNodeGroup", tree_manipulate::ACT_TREE_NODE_ADD, Some(tree_manipulate::ActTreeNodeAddCmd::Group as i32)),
         ("AddTreeNodeScene", tree_manipulate::ACT_TREE_NODE_ADD, Some(tree_manipulate::ActTreeNodeAddCmd::Scene as i32)),
         ("AddTreeNodePage",  tree_manipulate::ACT_TREE_NODE_ADD, Some(tree_manipulate::ActTreeNodeAddCmd::Page  as i32)),
         ("AddTreeNodeMat",   tree_manipulate::ACT_TREE_NODE_ADD, Some(tree_manipulate::ActTreeNodeAddCmd::Mat   as i32)),
-        ("AddTreeNodePmat",  tree_manipulate::ACT_TREE_NODE_ADD, Some(tree_manipulate::ActTreeNodeAddCmd::Ovimg as i32)),
-        ("RemoveTreeNode",   tree_manipulate::ACT_TREE_NODE_ADD, Some(tree_manipulate::ActTreeNodeAddCmd::Pmat  as i32)),];
-    let keybind_conf = KeyBind::init();
+        ("AddTreeNodePmat",  tree_manipulate::ACT_TREE_NODE_ADD, Some(tree_manipulate::ActTreeNodeAddCmd::Pmat  as i32)),];
     keybind_conf.assign_acti32_and_accelkey(&tree_manipulate_acts,
                                             &menu_tree_edit,
                                             &app,
@@ -513,9 +510,10 @@ pub fn build_ui(app: &Application) {
                                                          history.clone(),
                                                          mediator.clone());
     window.add_action(&rm_tree_node);
-    let menu_rm_tree_node = MenuItem::new(Some(tree_manipulate::ACT_TREE_NODE_RM),
-                                          Some( &("win".to_string() + tree_manipulate::ACT_TREE_NODE_RM) ));
-    menu_tree_edit.append_item(&menu_rm_tree_node);
+    keybind_conf.assign_acti32_and_accelkey(&vec![("RemoveTreeNode", tree_manipulate::ACT_TREE_NODE_RM, None)],
+                                            &menu_tree_edit,
+                                            &app,
+                                            "win.");
 
     ////////////////////////////////////////////////////////
     // menu text edit //////////////////////////////////////
@@ -574,8 +572,6 @@ pub fn build_ui(app: &Application) {
     app.set_accels_for_action(&("win.".to_string() + view_actions::ACT_FOCUS_VIEW +
                                 "(" + &(view_actions::ActFocusViewCmd::TreeView as i32).to_string() + ")"), &["F3"]);
     app.set_accels_for_action(&("win.".to_string() + view_actions::ACT_FOCUS_ATTRBOX)                     , &["F4"]);
-
-    app.set_accels_for_action(&("win.".to_string() + tree_manipulate::ACT_TREE_NODE_RM),  &["<Ctrl><Shift>r"]);
 
     app.set_accels_for_action("win.text_forward_char", &["<Alt>semicolon"]);
 

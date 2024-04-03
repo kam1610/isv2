@@ -1203,6 +1203,16 @@ impl ScenarioNode {
             _ => ()
         }
     }
+    // bgimg for scene/mat/pmat ////////////////////////////
+    pub fn get_bgimg(&self) -> Option<PathBuf>{
+        if self.is_scene() {
+            return self.get_scene_bgimg(); }
+        else if self.is_mat() || self.is_pmat() {
+            return self.get_mat_bgimg(); }
+        else {
+            return None;
+        }
+    }
     // is_mat //////////////////////////////////////////////
     pub fn is_mat(&self) -> bool{
         if let Item::Mat(_) = &(*self.value.borrow()) { true } else { false } }

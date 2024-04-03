@@ -683,13 +683,9 @@ impl Isv2FileDialogBox {
         file_dialog.set_filters(Some(&model));
         file_dialog.set_default_filter(Some(&file_filter)); // https://gitlab.gnome.org/GNOME/gtk/-/issues/6071
 
-        let bgimg;
-        bgimg = if sno.get_node().is_scene() { sno.get_node().get_scene_bgimg() } else
-                if sno.get_node().is_mat()   { sno.get_node().get_mat_bgimg()   } else
-                if sno.get_node().is_pmat()  { sno.get_node().get_mat_bgimg()   } else
-                { None };
+        let bgimg = sno.get_node().get_bgimg();
         let file_entry_str =
-            if let Some(ref p) = bgimg {
+            if let Some(ref p) = bgimg{
                 p.to_str().unwrap().clone()
             } else {
                 ""
@@ -1068,12 +1064,7 @@ fn set_file_dialog_initial_path(file_dialog: &FileDialog,
     }
     let mut prj_path = parameter.property::<PathBuf>("project_dir");
 
-    let p;
-    p = if sno.get_node().is_scene() { sno.get_node().get_scene_bgimg() } else
-        if sno.get_node().is_mat()   { sno.get_node().get_mat_bgimg()   } else
-        if sno.get_node().is_pmat()  { sno.get_node().get_mat_bgimg()   } else
-        { None };
-    if let Some(p) = p {
+    if let Some(p) = sno.get_node().get_bgimg() {
         prj_path.push(&p);
     } else {
         println!("(set_file_dialog_initial_path) scene_bgimg is not set yet");

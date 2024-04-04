@@ -686,7 +686,7 @@ impl Isv2FileDialogBox {
         let bgimg = sno.get_node().get_bgimg();
         let file_entry_str =
             if let Some(ref p) = bgimg{
-                p.to_str().unwrap().clone()
+                p.to_str().unwrap()
             } else {
                 ""
             };

@@ -7,6 +7,8 @@
 **NOTE:** これは実験的なソフトです．まだ十分にテストされていません．  
 また，データ構造などは今後修正する可能性があります．
 
+詳細な使用方法は[wiki](https://github.com/kam1610/isv2/wiki/usage_jp)を参照してください．
+
 # スクリーンショット
 
 ![screen_shot](doc/img/screen_shot_0.png)
@@ -86,6 +88,8 @@ but also creating illustration collections that include scenario text.
 
 **NOTE:** This is an experimental work and has not been fully tested yet.
 Data structures and other aspects are subject to change.
+
+Please refer to [our wiki](https://github.com/kam1610/isv2/wiki/usage_jp) for detailed usage.
 
 # Screen shot
 

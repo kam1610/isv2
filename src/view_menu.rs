@@ -190,11 +190,11 @@ pub mod view_actions{
             let sno = row.item().and_downcast::<ScenarioNodeObject>().expect("sno is expd");
 
             let mut select = false;
-            match *sno.get_node().value.borrow() {
-                Item::Group   | Item::Scene(_) => { row.set_expanded(true); },
-                Item::Page(_) | Item::Pmat(_)  => { select = true; },
-                _ => ()
-            }
+
+            let sn = sno.get_node();
+            if sn.is_group() || sn.is_scene() { row.set_expanded(true); } else
+            if sn.is_page()  || sn.is_pmat()  { select = true; }
+
             if select{ sel.set_selected(n as u32); break; }
 
             if downward {
@@ -234,12 +234,12 @@ pub mod view_actions{
                 if ((sel.n_items() as i32)-1) < n { break; }
                 let row = sel.item(n as u32).unwrap().downcast::<TreeListRow>().expect("row");
                 let sno = row.item().and_downcast::<ScenarioNodeObject>().expect("sno is expd");
-                match &*sno.get_node().value.borrow() {
-                    Item::Group    => { row.set_expanded(true ); },
-                    Item::Scene(_) => { row.set_expanded(false); },
-                    Item::Page(_)  => { row.set_expanded(false); },
-                    _ => ()
-                }
+
+                let sn = sno.get_node();
+                if sn.is_group() { row.set_expanded(true ); } else
+                if sn.is_scene() { row.set_expanded(false); } else
+                if sn.is_page()  { row.set_expanded(false); }
+
                 n+=1;
             }
         });

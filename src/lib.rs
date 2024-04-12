@@ -17,6 +17,7 @@ mod tree_util;
 mod view_menu;
 mod status_bar;
 mod text_edit_util;
+mod keybind;
 
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -70,6 +71,7 @@ use crate::tree_util::tree_manipulate;
 use crate::view_menu::view_actions;
 use crate::status_bar::StatusBar;
 use crate::text_edit_util::text_edit;
+use crate::keybind::KeyBind;
 
 // load_css ////////////////////////////////////////////////
 pub fn load_css() {
@@ -358,24 +360,6 @@ pub fn build_ui(app: &Application) {
         }
     }));
 
-    ////////////////////////////////////////////////////////
-    // util for assign menu item and shortcut
-    fn assign_acti32_and_accelkey(acts       : &Vec<(&str, &str, i32, &str)>,
-                                  parent_menu: &Menu,
-                                  app        : &Application){
-        let _ = acts.iter()
-            .map(|act|{
-                let menu_act = MenuItem::new(Some(act.0),
-                                             Some(&("win.".to_string() +
-                                                    act.1 +
-                                                    "(" + &(act.2).to_string() + ")")));
-                parent_menu.append_item(&menu_act);
-                app.set_accels_for_action(&("win.".to_string() + act.1 +
-                                            "(" + &(act.2).to_string() + ")"),
-                                          &[act.3]);
-            }).collect::<Vec<_>>();
-    }
-
     // menu ////////////////////////////////////////////////
     let menu      = Menu::new();
 
@@ -418,17 +402,42 @@ pub fn build_ui(app: &Application) {
     let select_tree_node = view_actions::act_tree_node_sel(selection_model.clone());
     window.add_action(&select_tree_node);
 
+    //   {key value in keybind.conf, action name(String), arg(i32)}
     let node_view_acts = vec![
-        ("forward nonde",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::FwdNode  as i32, "<Alt>n"),
-        ("backward node",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::BackNode as i32, "<Alt>p"),
-        // ("forward nonde 3",      view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::FwdNode  as i32, "<Alt>n"), // considerating good shortcut key
-        // ("backward node 3", view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::BackNode as i32, "<Alt>p"),
-        ("forward page",    view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::FwdPage  as i32, "<Alt><Shift>n"),
-        ("backward page",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::BackPage as i32, "<Alt><Shift>p"),
-        ("expand node",     view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::Collapse as i32, "<Alt>c"),
-        ("collapse node",   view_actions::ACT_TREE_NODE_SEL, view_actions::ActTreeNodeSelCmd::Expand   as i32, "<Alt>e"),];
-    assign_acti32_and_accelkey(&node_view_acts, &menu_node_view, &app);
+        ("FwdNode",       view_actions::ACT_TREE_NODE_SEL,  Some(view_actions::ActTreeNodeSelCmd::FwdNode  as i32)),
+        ("BackNode",      view_actions::ACT_TREE_NODE_SEL,  Some(view_actions::ActTreeNodeSelCmd::BackNode as i32)),
+        ("FwdPage",       view_actions::ACT_TREE_NODE_SEL,  Some(view_actions::ActTreeNodeSelCmd::FwdPage  as i32)),
+        ("BackPage",      view_actions::ACT_TREE_NODE_SEL,  Some(view_actions::ActTreeNodeSelCmd::BackPage as i32)),
+        ("CollapseNode",  view_actions::ACT_TREE_NODE_SEL,  Some(view_actions::ActTreeNodeSelCmd::Collapse as i32)),
+        ("ExpandNode",    view_actions::ACT_TREE_NODE_SEL,  Some(view_actions::ActTreeNodeSelCmd::Expand   as i32)),];
+    let keybind_conf = KeyBind::init();
+    keybind_conf.assign_acti32_and_accelkey(&node_view_acts,
+                                            Some(&menu_node_view),
+                                            &app,
+                                            "win.");
 
+    let act_close_all_page = view_actions::act_close_all_page(selection_model.clone());
+    window.add_action(&act_close_all_page);
+    let act_close_all_scene = view_actions::act_close_all_scene(selection_model.clone());
+    window.add_action(&act_close_all_scene);
+
+    let node_view_acts2 = vec![
+        ("CloseAllPage",   view_actions::ACT_CLOSE_ALL_PAGE,  None),
+        ("CloseAllScene",  view_actions::ACT_CLOSE_ALL_SCENE, None)];
+    keybind_conf.assign_acti32_and_accelkey(&node_view_acts2,
+                                            Some(&menu_node_view),
+                                            &app,
+                                            "win.");
+
+    // toggle_bgimg ////////////////////////////////////
+    let act_toggle_bgimg = view_actions::act_toggle_bgimg(param.clone(), mediator.clone(), selection_model.clone());
+    window.add_action(&act_toggle_bgimg);
+    keybind_conf.assign_acti32_and_accelkey(&vec![("ToggleBgimg", view_actions::ACT_TOGGLE_BGIMG, None)],
+                                            Some(&menu_node_view),
+                                            &app,
+                                            "win.");
+
+    ////////////////////////////////////////////////////////
     // full screen
     let act_full_screen_preview = view_actions::act_preview(mediator.clone(),
                                                             param.clone(),
@@ -437,26 +446,6 @@ pub fn build_ui(app: &Application) {
     let full_screen_item = MenuItem::new(Some("full screen preview"),
                                          Some( &("app.".to_string() + view_actions::ACT_PREVIEW)));
     menu_node_view.append_item(&full_screen_item);
-
-    // close_all_page //////////////////////////////////////
-    let act_close_all_page = view_actions::act_close_all_page(selection_model.clone());
-    app.add_action(&act_close_all_page);
-    let menu_item_close_all_page = MenuItem::new(Some("CloseAll_Page"),
-                                                 Some( &("app.".to_string() + view_actions::ACT_CLOSE_ALL_PAGE) ));
-    menu_node_view.append_item(&menu_item_close_all_page);
-
-    let act_close_all_scene = view_actions::act_close_all_scene(selection_model.clone());
-    app.add_action(&act_close_all_scene);
-    let menu_item_close_all_scene = MenuItem::new(Some("CloseAll_Scene"),
-                                                  Some( &("app.".to_string() + view_actions::ACT_CLOSE_ALL_SCENE) ));
-    menu_node_view.append_item(&menu_item_close_all_scene);
-
-    // toggle_bgimg ////////////////////////////////////
-    let act_toggle_bgimg = view_actions::act_toggle_bgimg(param.clone(), mediator.clone(), selection_model.clone());
-    app.add_action(&act_toggle_bgimg);
-    let menu_item_toggle_bgimg = MenuItem::new(Some("_ToggleBgimg"),
-                                               Some( &("app.".to_string() + view_actions::ACT_TOGGLE_BGIMG) ));
-    menu_node_view.append_item(&menu_item_toggle_bgimg);
 
     ////////////////////////////////////////////////////////
     // preferences menu ////////////////////////////////////
@@ -482,35 +471,27 @@ pub fn build_ui(app: &Application) {
     let add_tree_node = tree_manipulate::act_tree_node_add(selection_model.clone(),
                                                            history.clone());
     window.add_action(&add_tree_node);
-    {
-        let node_acts = vec![ (tree_manipulate::ACT_TREE_NODE_GROUP, "<Ctrl><Shift>g"),
-                              (tree_manipulate::ACT_TREE_NODE_SCENE, "<Ctrl><Shift>s"),
-                              (tree_manipulate::ACT_TREE_NODE_PAGE,  "<Ctrl><Shift>p"),
-                              (tree_manipulate::ACT_TREE_NODE_MAT,   "<Ctrl><Shift>m"),
-                              (tree_manipulate::ACT_TREE_NODE_OVIMG, "<Ctrl><Shift>i"),
-                              (tree_manipulate::ACT_TREE_NODE_PMAT,  "<Ctrl><Shift>t") ];
-        let _ = node_acts.iter()
-            .map(|act| {
-                let menu_add_tree_node_type = MenuItem::new(Some(act.0),
-                                                            Some( &("win.".to_string() +
-                                                                    tree_manipulate::ACT_TREE_NODE_ADD +
-                                                                    "('" + act.0 + "')") ));
-                menu_tree_edit.append_item(&menu_add_tree_node_type);
-                // assign shortcut key
-                app.set_accels_for_action(&("win.".to_string() + tree_manipulate::ACT_TREE_NODE_ADD +
-                                            "('" + act.0 + "')"),
-                                          &[&act.1]);
 
-            }).collect::<Vec<_>>();
-    }
+    let tree_manipulate_acts = vec![
+        ("AddTreeNodeGroup", tree_manipulate::ACT_TREE_NODE_ADD, Some(tree_manipulate::ActTreeNodeAddCmd::Group as i32)),
+        ("AddTreeNodeScene", tree_manipulate::ACT_TREE_NODE_ADD, Some(tree_manipulate::ActTreeNodeAddCmd::Scene as i32)),
+        ("AddTreeNodePage",  tree_manipulate::ACT_TREE_NODE_ADD, Some(tree_manipulate::ActTreeNodeAddCmd::Page  as i32)),
+        ("AddTreeNodeMat",   tree_manipulate::ACT_TREE_NODE_ADD, Some(tree_manipulate::ActTreeNodeAddCmd::Mat   as i32)),
+        ("AddTreeNodePmat",  tree_manipulate::ACT_TREE_NODE_ADD, Some(tree_manipulate::ActTreeNodeAddCmd::Pmat  as i32)),];
+    keybind_conf.assign_acti32_and_accelkey(&tree_manipulate_acts,
+                                            Some(&menu_tree_edit),
+                                            &app,
+                                            "win.");
+
     // rm_tree_node ////////////////////////////////////////
     let rm_tree_node = tree_manipulate::act_tree_node_rm(selection_model.clone(),
                                                          history.clone(),
                                                          mediator.clone());
     window.add_action(&rm_tree_node);
-    let menu_rm_tree_node = MenuItem::new(Some(tree_manipulate::ACT_TREE_NODE_RM),
-                                          Some( &("win".to_string() + tree_manipulate::ACT_TREE_NODE_RM) ));
-    menu_tree_edit.append_item(&menu_rm_tree_node);
+    keybind_conf.assign_acti32_and_accelkey(&vec![("RemoveTreeNode", tree_manipulate::ACT_TREE_NODE_RM, None)],
+                                            Some(&menu_tree_edit),
+                                            &app,
+                                            "win.");
 
     ////////////////////////////////////////////////////////
     // menu text edit //////////////////////////////////////
@@ -530,31 +511,35 @@ pub fn build_ui(app: &Application) {
     window.add_action(&text_c_n_p_action);
 
     let text_edit_acts = vec![
-        ("forward char",         text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::FwdChar       as i32, "<Alt>semicolon"),
-        ("backward char",        text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::BackChar      as i32, "<Alt>J"),
-        ("forward word",         text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::FwdWord       as i32, "<Alt>o"),
-        ("backword word",        text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::BackWord      as i32, "<Alt>i"),
-        ("next line",            text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::NextLine      as i32, "<Alt>k"),
-        ("prev line",            text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::PrevLine      as i32, "<Alt>l"),
-        ("next line 3",          text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::NextLine3     as i32, "<Alt>9"),
-        ("prev line 3",          text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::PrevLine3     as i32, "<Alt>0"),
-        ("beginning line",       text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::BegLine       as i32, "<Ctrl>a"),
-        ("end line",             text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::EndLine       as i32, "<Ctrl>e"),
-        ("beginning buffer",     text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::BegBuff       as i32, "<Alt>less"),
-        ("end buffer",           text_edit::ACT_CURSOR_MOVE, text_edit::ActCursorCmd::EndBuff       as i32, "<Alt>greater"),
-        ("delete backward char", text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::DelBackChar  as i32, "<Ctrl>h"),
-        ("delete char",          text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::DelChar      as i32, "<Ctrl>d"),
-        ("kill line",            text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::KillLine     as i32, "<Ctrl>k"),
-        ("backward kill word",   text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::BackKillWord as i32, "<Alt>h" ),
-        ("kill word",            text_edit::ACT_DEL_TEXT,    text_edit::ActDelTextCmd::KillWord     as i32, "<Alt>d" ),
-        ("new line",             text_edit::ACT_INS_TEXT,    text_edit::ActInsTextCmd::NewLine      as i32, "<Ctrl>m"),
-        ("open line",            text_edit::ACT_INS_TEXT,    text_edit::ActInsTextCmd::OpenLine     as i32, "<Ctrl>o"),
-        ("dakuten",              text_edit::ACT_INS_TEXT,    text_edit::ActInsTextCmd::Dakuten      as i32, "<Ctrl>quoteright"),
-        ("copy text",            text_edit::ACT_C_N_P_TEXT,  text_edit::ActCnPTextCmd::Copy         as i32, "<Alt>w"),
-        ("cut text",             text_edit::ACT_C_N_P_TEXT,  text_edit::ActCnPTextCmd::Cut          as i32, "<Ctrl>w"),
-        ("paste text",           text_edit::ACT_C_N_P_TEXT,  text_edit::ActCnPTextCmd::Paste        as i32, "<Ctrl>y"),];
-    assign_acti32_and_accelkey(&text_edit_acts, &menu_text_edit, &app);
+        ("CursorFwdChar",    text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::FwdChar       as i32)),
+        ("CursorBackChar",   text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::BackChar      as i32)),
+        ("CursorFwdWord",    text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::FwdWord       as i32)),
+        ("CursorBackWord",   text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::BackWord      as i32)),
+        ("CursorNextLine",   text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::NextLine      as i32)),
+        ("CursorPrevLine",   text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::PrevLine      as i32)),
+        ("CursorNextLine3",  text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::NextLine3     as i32)),
+        ("CursorPrevLine3",  text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::PrevLine3     as i32)),
+        ("CursorBegLine",    text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::BegLine       as i32)),
+        ("CursorEndLine",    text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::EndLine       as i32)),
+        ("CursorBegBuff",    text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::BegBuff       as i32)),
+        ("CursorEndBuff",    text_edit::ACT_CURSOR_MOVE, Some(text_edit::ActCursorCmd::EndBuff       as i32)),
+        ("DelBackChar",      text_edit::ACT_DEL_TEXT,    Some(text_edit::ActDelTextCmd::DelBackChar  as i32)),
+        ("DelChar",          text_edit::ACT_DEL_TEXT,    Some(text_edit::ActDelTextCmd::DelChar      as i32)),
+        ("KillLine",         text_edit::ACT_DEL_TEXT,    Some(text_edit::ActDelTextCmd::KillLine     as i32)),
+        ("BackKillWord",     text_edit::ACT_DEL_TEXT,    Some(text_edit::ActDelTextCmd::BackKillWord as i32)),
+        ("KillWord",         text_edit::ACT_DEL_TEXT,    Some(text_edit::ActDelTextCmd::KillWord     as i32)),
+        ("NewLine",          text_edit::ACT_INS_TEXT,    Some(text_edit::ActInsTextCmd::NewLine      as i32)),
+        ("OpenLine",         text_edit::ACT_INS_TEXT,    Some(text_edit::ActInsTextCmd::OpenLine     as i32)),
+        ("Dakuten",          text_edit::ACT_INS_TEXT,    Some(text_edit::ActInsTextCmd::Dakuten      as i32)),
+        ("TextCopy",         text_edit::ACT_C_N_P_TEXT,  Some(text_edit::ActCnPTextCmd::Copy         as i32)),
+        ("TextCut",          text_edit::ACT_C_N_P_TEXT,  Some(text_edit::ActCnPTextCmd::Cut          as i32)),
+        ("TextPaste",        text_edit::ACT_C_N_P_TEXT,  Some(text_edit::ActCnPTextCmd::Paste        as i32)),];
+    keybind_conf.assign_acti32_and_accelkey(&text_edit_acts,
+                                            Some(&menu_text_edit),
+                                            &app,
+                                            "win.");
 
+    // focus command ///////////////////////////////////////
     let focus_view_action = view_actions::act_focus_view(text_view.clone(),
                                                          list_view.clone());
     window.add_action(&focus_view_action);
@@ -562,20 +547,14 @@ pub fn build_ui(app: &Application) {
     let focus_attr_box_action = view_actions::act_focus_attrbox(attribute_box.clone());
     window.add_action(&focus_attr_box_action);
 
-    ////////////////////////////////////////////////////////
-    // shortcut ////////////////////////////////////////////
-    app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_CLOSE_ALL_PAGE  ), &["<Ctrl>bracketright"]);
-    app.set_accels_for_action(&("app.".to_string() + view_actions::ACT_TOGGLE_BGIMG),     &["<Ctrl>b"]);
-
-    app.set_accels_for_action(&("win.".to_string() + view_actions::ACT_FOCUS_VIEW +
-                                "(" + &(view_actions::ActFocusViewCmd::TextView as i32).to_string() + ")"), &["F2"]);
-    app.set_accels_for_action(&("win.".to_string() + view_actions::ACT_FOCUS_VIEW +
-                                "(" + &(view_actions::ActFocusViewCmd::TreeView as i32).to_string() + ")"), &["F3"]);
-    app.set_accels_for_action(&("win.".to_string() + view_actions::ACT_FOCUS_ATTRBOX)                     , &["F4"]);
-
-    app.set_accels_for_action(&("win.".to_string() + tree_manipulate::ACT_TREE_NODE_RM),  &["<Ctrl><Shift>r"]);
-
-    app.set_accels_for_action("win.text_forward_char", &["<Alt>semicolon"]);
+    let focus_acts = vec![
+        ("FocusText", view_actions::ACT_FOCUS_VIEW, Some(view_actions::ActFocusViewCmd::TextView as i32)),
+        ("FocusTree", view_actions::ACT_FOCUS_VIEW, Some(view_actions::ActFocusViewCmd::TreeView as i32)),
+        ("FocusAttr", view_actions::ACT_FOCUS_ATTRBOX, None),];
+    keybind_conf.assign_acti32_and_accelkey(&focus_acts,
+                                            None,
+                                            &app,
+                                            "win.");
 
     // set attribute box after root is associated
     attribute_box.update_item_type(selection_model.clone());

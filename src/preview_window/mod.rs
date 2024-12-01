@@ -90,7 +90,9 @@ impl PreviewWindow {
                 label_sno.get_scene_bgcol().unwrap().iter().map(|c|{ (*c as f64) / 255.0 }).collect();
             cr.set_source_rgb( c[0], c[1], c[2] );
             cr.rectangle(0.0, 0.0, target_w as f64, target_h as f64);
-            cr.fill().expect("fill background on PreviewWindow");
+            if cr.fill().is_err(){
+                println!("fill background on PreviewWindow failed");
+                return; }
 
             // draw image
             if !label_sno.get_scene_bg_en().unwrap() { return; }
@@ -112,7 +114,9 @@ impl PreviewWindow {
                                      crop_target_ofst_x as f64, crop_target_ofst_y as f64);
                 cr.rectangle(crop_target_ofst_x as f64, crop_target_ofst_y as f64,
                              crop_target_w      as f64, crop_target_h      as f64);
-                cr.fill().expect("draw image on PreviewWindow");
+                if cr.fill().is_err(){
+                    println!("draw image on PreviewWindow failed!");
+                }
             } else {
                 // println!("pbuf for background has not been prepared!");
             }
@@ -246,7 +250,8 @@ impl PreviewWindow {
                 );
             }
             pwin.draw_mats(cr, _w, _h);
-            cr.fill().expect("fill in draw_func on PreviewWindow");
+            if cr.fill().is_err(){
+                println!("fill in draw_func on PreviewWindow failed!"); return; }
         });
 
         // signal handler(sno-selected) ////////////////////
@@ -484,6 +489,12 @@ impl PreviewWindow {
                         },
                         Item::Page(_) | Item::Pmat(_) => {
                             area.clear();
+
+                            let scene_node =
+                                if let Some(p) = ScenarioNode::get_belong_scene(&sn) { p } // detects scene
+                            else { println!("the scene to which new node belongs was not found!"); return; };
+                            Self::collect_mats_in_scene(&scene_node, &mut area);
+
                             Self::collect_mats(&sn, &mut area);
                             // 0. prepare surface
                             let surface = {
@@ -642,7 +653,8 @@ impl PreviewWindow {
         };
         cr.set_source_pixbuf(&scale_pbuf, x, y);
         cr.rectangle(x, y, w, h);
-        cr.fill().expect("draw image on PreviewWindow");
+        if cr.fill().is_err(){
+            println!("draw image on PreviewWindow failed!"); }
 
         Ok(())
     }
@@ -668,11 +680,7 @@ impl PreviewWindow {
                 }
             };
             let (pad_x, pad_y) = {
-                if sn_source.get_label_type() == Some(LabelType::RefNoRect) {
-                    if let Some( tuple )  = sn_source.get_mat_text_pos_f64() { tuple } else { return; }
-                } else {
-                    if let Some( tuple )  = sn.get_mat_text_pos_f64() { tuple } else { return; }
-                }
+                if let Some( tuple )  = sn.get_mat_text_pos_f64() { tuple } else { return; }
             };
             let (r, g, b, a) =
                 if let Some( tuple )  = sn.get_mat_rgba_tuple_f64() { tuple } else { return; };
@@ -705,7 +713,9 @@ impl PreviewWindow {
                     cr.arc    (x,     y+h,      round,  0.5*m_pi,  1.0*m_pi);
                     cr.close_path();
                 }
-                cr.fill().expect("fill draw_mats_sub");
+                if cr.fill().is_err() {
+                    println!("fill draw_mats_sub failed!");
+                    return; }
             }
             // text ////////////////////////////////////////
             let layout = Layout::new(pc);
@@ -853,7 +863,37 @@ impl PreviewWindow {
             }
         }
     }
+    fn collect_mats_in_scene(scene_node : &Rc<ScenarioNode>,
+                             area      : &mut Vec::<(Rc<ScenarioNode>, Option<Rc<ScenarioNode>>)>) {
+        let mut p = scene_node.clone();
+        loop {
+            let p1;
+            match *p.value.borrow() {
+                Item::Scene(_) => {
+                    p1 = p.child.borrow().clone();
+                }
+                Item::Mat(_) => {
+                    let lbl_ref_node = ScenarioNode::search_def_label(p.clone()); // reference if it has label-ref
+                    area.push( (p.clone(), lbl_ref_node) );
+                    p1 = p.neighbor.borrow().clone();
+                }
+                Item::Page(_) | Item::Pmat(_) => {
+                    p1 = p.neighbor.borrow().clone();
+                }
+                _ => { p1 = None; }
+            }
+            if p1.is_some() { /* child or neighbor is set if exists */
+                p = p1.unwrap();
+            } else {
+                break;
+            }
+        }
+    }
     pub fn update_mat(&self, sno: ScenarioNodeObject, force_update: bool) -> bool{
+        let scene_node =
+            if let Some(p) = ScenarioNode::get_belong_scene(&sno.get_node()) { p } // detects scene
+            else { println!("the scene to which new node belongs was not found!"); return false; };
+
         let page_node =
             if let Some(p) = ScenarioNode::get_belong_page(&sno.get_node()) { p } // detects page or pmat
             else { println!("the page to which new node belongs was not found!"); return false; };
@@ -867,6 +907,8 @@ impl PreviewWindow {
         }
         // handles mat /////////////////////////////////////
         self.imp().area.borrow_mut().clear();
+
+        Self::collect_mats_in_scene(&scene_node, &mut(*self.imp().area.borrow_mut()));
         Self::collect_mats(&page_node, &mut(*self.imp().area.borrow_mut()));
         true
     }

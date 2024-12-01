@@ -13,6 +13,9 @@ pub mod view_actions{
     use gtk::glib::Propagation;
     use gtk::glib::clone;
     use gtk::glib::Object;
+    use gtk::Box;
+    use gtk::gdk::Monitor;
+    use gtk::Orientation;
 
     use crate::isv2_mediator::Isv2Mediator;
     use crate::isv2_parameter::Isv2Parameter;
@@ -21,6 +24,7 @@ pub mod view_actions{
     use crate::sno_list::selection_to_sno;
     use crate::scenario_node_attribute_box::ScenarioNodeAttributeBox;
     use crate::preview_window::PreviewWindow;
+    use crate::drawing_util::util;
 
     pub const ACT_FOCUS_VIEW  : &str = "select_text_view";
     #[derive(Debug, Clone, Copy)]
@@ -57,9 +61,33 @@ pub mod view_actions{
             full_preview_window.set_mediator(mediator.clone().upcast::<Object>().downgrade());
             full_preview_window.set_parameter(parameter.clone().downgrade());
 
+            let pbox = Box::new(Orientation::Horizontal, 0);
+            pbox.append(&full_preview_window);
+
             let win = Window::builder().title( String::from("preview") ).modal(true).build();
-            win.set_child(Some(&full_preview_window));
+            win.set_child(Some(&pbox));
             win.set_decorated(false);
+
+            win.connect_maximized_notify(
+                clone!(@strong parameter,
+                       @strong win,
+                       @strong full_preview_window,
+                       @strong pbox => move |_w|{
+                           let disp_geo = RootExt::display(&win).monitors().item(1).unwrap()
+                               .downcast::<Monitor>().expect("Monitor")
+                               .geometry();
+                           let disp_w   = disp_geo.width();
+                           let disp_h   = disp_geo.height();
+                           let target_w = parameter.property::<i32>("target_width");
+                           let target_h = parameter.property::<i32>("target_height");
+
+                           let (_, _, _, ofst_x, ofst_y) =
+                               util::get_scale_offset(target_w, target_h,
+                                                      disp_w, disp_h);
+
+                           pbox.set_margin_start(ofst_x);
+                           pbox.set_margin_top(ofst_y);
+                       }));
 
             //TODO: set key controller
             let kctrl = EventControllerKey::new();
@@ -78,7 +106,7 @@ pub mod view_actions{
                 Propagation::Proceed
             }));
 
-            win.fullscreen();
+            //win.fullscreen();
             win.present();
         });
         act

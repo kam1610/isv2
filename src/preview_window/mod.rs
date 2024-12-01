@@ -680,11 +680,7 @@ impl PreviewWindow {
                 }
             };
             let (pad_x, pad_y) = {
-                if sn_source.get_label_type() == Some(LabelType::RefNoRect) {
-                    if let Some( tuple )  = sn_source.get_mat_text_pos_f64() { tuple } else { return; }
-                } else {
-                    if let Some( tuple )  = sn.get_mat_text_pos_f64() { tuple } else { return; }
-                }
+                if let Some( tuple )  = sn.get_mat_text_pos_f64() { tuple } else { return; }
             };
             let (r, g, b, a) =
                 if let Some( tuple )  = sn.get_mat_rgba_tuple_f64() { tuple } else { return; };

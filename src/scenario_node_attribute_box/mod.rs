@@ -423,7 +423,8 @@ impl Isv2PosBox{
         pos_box.append(&pos_label);
         pos_box.append(&pos_entry);
 
-        if sno.get_node().get_label_type() == Some(LabelType::Ref){
+        if sno.get_node().get_label_type() == Some(LabelType::Ref) ||
+           sno.get_node().get_label_type() == Some(LabelType::RefNoRect) {
             set_css_grayout(vec![pos_label.clone().upcast::<Widget>(),
                                  pos_entry.clone().upcast::<Widget>() ],
                             true);

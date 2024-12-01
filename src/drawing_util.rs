@@ -78,41 +78,64 @@ pub mod util {
                                begin_x   : i32, begin_y   : i32,
                                mat_orig_x: i32, mat_orig_y: i32,
                                px: i32, py: i32,
+                               x_min: i32, w_lim: i32, y_min: i32, h_lim: i32,
                                cst: CursorState) -> (i32, i32, i32, i32){
         let (mut new_x, mut new_y, mut new_w, mut new_h) = (x, y, w, h);
+
         match cst {
             CursorState::Nw => {
-                if px < (x + w) { new_x = px;         new_w = x + w - px; }
-                if py < (y + h) { new_h = y + h - py; new_y = py;         }
+                if py < y_min { new_y = y_min; new_h = y + h - y_min; }
+                else if py < (y + h) { new_h = y + h - py; new_y = py; }
+
+                if px < x_min { new_x = x_min; new_w = x + w - x_min; }
+                else if px < (x + w) { new_x = px; new_w = x + w - px; }
             },
             CursorState::N => {
-                if py < (y + h) { new_h = y + h - py; new_y = py; }
+                if py < y_min { new_y = y_min; new_h = y + h - y_min; }
+                else if py < (y + h) { new_h = y + h - py; new_y = py; }
             },
             CursorState::Ne => {
-                if x  < px      { new_w = px - x; }
-                if py < (y + h) { new_h = y + h - py; new_y = py;         }
+                if py < y_min { new_y = y_min; new_h = y + h - y_min; }
+                else if py < (y + h) { new_h = y + h - py; new_y = py; }
+
+                if (x_min + w_lim) < px { new_w = x_min + w_lim - x; }
+                else if x < px { new_w = px - x; }
             },
             CursorState::E => {
-                if x  < px      { new_w = px - x; }
+                if (x_min + w_lim) < px { new_w = x_min + w_lim - x; }
+                else if x < px { new_w = px - x; }
             },
             CursorState::Se => {
-                if x  < px      { new_w = px - x; }
-                if y  < py      { new_h = py - y; }
+                if (y_min + h_lim) < py { new_h = y_min + h_lim - y; }
+                else if y  < py { new_h = py - y; }
+
+                if (x_min + w_lim) < px { new_w = x_min + w_lim - x; }
+                else if x < px { new_w = px - x; }
             },
             CursorState::S => {
-                if y  < py      { new_h = py - y; }
+                if (y_min + h_lim) < py { new_h = y_min + h_lim - y; }
+                else if y  < py { new_h = py - y; }
             },
             CursorState::Sw => {
-                if px < (x + w) { new_x = px;         new_w = x + w - px; }
-                if y  < py      { new_h = py - y; }
+                if (y_min + h_lim) < py { new_h = y_min + h_lim - y; }
+                else if y  < py { new_h = py - y; }
+
+                if px < x_min { new_x = x_min; new_w = x + w - x_min; }
+                else if px < (x + w) { new_x = px; new_w = x + w - px; }
             },
             CursorState::W => {
-                if px < (x + w) { new_x = px;         new_w = x + w - px; }
+                if px < x_min { new_x = x_min; new_w = x + w - x_min; }
+                else if px < (x + w) { new_x = px; new_w = x + w - px; }
             },
             CursorState::G => {
                 let (dx, dy) = (px - begin_x,  py - begin_y);
-                if 0 < (mat_orig_x + dx) { new_x = mat_orig_x + dx; }
-                if 0 < (mat_orig_y + dy) { new_y = mat_orig_y + dy; }
+                if (x_min < (mat_orig_x + dx)) &&
+                    ((mat_orig_x + dx + w) < (x_min + w_lim)){
+                        new_x = mat_orig_x + dx; }
+                if (y_min < (mat_orig_y + dy)) &&
+                    ((mat_orig_y + dy + h) < (y_min + h_lim)){
+                        new_y = mat_orig_y + dy;
+                    }
             }
             _ => ()
         }

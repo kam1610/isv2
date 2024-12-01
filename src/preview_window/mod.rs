@@ -171,6 +171,7 @@ impl PreviewWindow {
                                                   begin_x, begin_y,
                                                   mat_orig_x, mat_orig_y,
                                                   px, py,
+                                                  0, 9999, 0, 9999, // TODO: area limit info: temporary value!
                                                   pwin.imp().area_state.get());
                     sn.set_mat_pos_dim(new_x, new_y, new_w, new_h);
                     pwin.queue_draw();

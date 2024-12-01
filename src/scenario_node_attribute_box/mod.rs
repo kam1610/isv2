@@ -888,6 +888,7 @@ impl Isv2CropWindow {
                                                   begin_x,        begin_y,
                                                   orig_x,         orig_y,
                                                   px,             py,
+                                                  ofst_x, pbuf.width(), ofst_y, pbuf.height(),
                                                   *obj.cursor.borrow());
                     (*obj.crop_temp_rect.borrow_mut()).set_x(new_x - ofst_x);
                     (*obj.crop_temp_rect.borrow_mut()).set_y(new_y - ofst_y);
